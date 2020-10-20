@@ -23,9 +23,6 @@ namespace PapyrusCs
         private static Stopwatch _time = new Stopwatch();
         private static Stopwatch _time2 = new Stopwatch();
 
-
-
-
         static int Main(string[] args)
         {
 
@@ -33,9 +30,15 @@ namespace PapyrusCs
 
             if (args.Length == 0 || !(new string[] { "map", "test", "find" }.Contains(args[0])))
             {
-                newargs = new[] { "map" }.Concat((args)).ToArray();
+                newargs = new[] { "repl" }.Concat((args)).ToArray();
             }
 
+            var result = CommandLine.Parser.Default.ParseArguments<ReplOptions>(newargs);
+            if (result.Tag == ParserResultType.Parsed)
+            {
+                result.WithParsed((options) => RunRepl(options));
+                return 0;
+            }
 
             return CommandLine.Parser.Default.ParseArguments<Options, TestOptions, FindOptions>(newargs)
                 .MapResult(
@@ -48,10 +51,6 @@ namespace PapyrusCs
                     (FindOptions opts) => RunFindOptions(opts),
                     errs => 1);
         }
-
-
-
-
 
         private static int RunMapCommand(Options options)
         {
@@ -241,6 +240,7 @@ namespace PapyrusCs
 
 
                 Console.WriteLine("Time is {0}", _time.Elapsed);
+
                 strat.RenderZoomLevels();
 
                 var output = new OpenLayers();
@@ -260,7 +260,7 @@ namespace PapyrusCs
 
 
             Console.WriteLine("Map generation finished!");
-            if (options.OutputPath.Length >= 2 && options.OutputPath[1] == ':') // absolute path 
+            if (options.OutputPath.Length >= 2 && options.OutputPath[1] == ':') // absolute path
             {
                 Console.WriteLine($"Your map is at {options.OutputPath}");
             }

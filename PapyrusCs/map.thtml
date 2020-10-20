@@ -204,7 +204,7 @@
       } else {
         document.getElementById("map").style.background = "#202020";
       }
-                
+
       const view = new ol.View({
         projection: projection,
         center: [0, 0],
@@ -264,7 +264,7 @@
                 } else {
                   document.getElementById("map").style.background = "#202020";
                 }
-        
+
                 if (currentSelectedLayer != layerKey) {
                   const runtimeLayers = map.getLayers();
                   runtimeLayers.forEach(function(runtimeLayer) {
@@ -272,7 +272,7 @@
                       runtimeLayer.metaLayerKey == layerKey
                     );
                   });
-                  
+
                   const oldFocusGroup = currentSelectedLayer.substr(0, 4);
                   const newFocusGroup = layerKey.substr(0, 4);
 

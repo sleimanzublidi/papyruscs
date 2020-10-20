@@ -70,7 +70,7 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
         {
             World.ChunkPool = new ChunkPool();
             graphics.DefaultQuality = FileQuality;
-          
+
             Console.Write("Grouping subchunks... ");
 
             var keysByXZ = AllWorldKeys.Where(c => c.X <= XMax && c.X >= XMin && c.Z <= ZMax && c.Z >= ZMin)
@@ -101,8 +101,8 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                 {BoundedCapacity = Math.Min(2 * t, RenderSettings.MaxNumberOfQueueEntries), EnsureOrdered = false, MaxDegreeOfParallelism = tsave};
             var dbOptions = new ExecutionDataflowBlockOptions()
                 {BoundedCapacity = Math.Min(2 * t, RenderSettings.MaxNumberOfQueueEntries), EnsureOrdered = false, MaxDegreeOfParallelism = 1};
-            
-            
+
+
             var groupedToTiles = chunkKeys.GroupBy(x => x.Subchunks.First().Value.GetXZGroup(ChunksPerDimension))
                 .ToList();
 
@@ -113,9 +113,9 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
             var getDataBlock = new GetDataBlock(World, renderedSubchunks, getOptions, ForceOverwrite);
 
             var createAndRender = new CreateChunkAndRenderBlock<TImage>(World, TextureDictionary, TexturePath, RenderSettings, graphics, ChunkSize, ChunksPerDimension, bitmapOptions);
-            
+
             var saveBitmapBlock = new SaveBitmapBlock<TImage>(isUpdate ? pathToMapUpdate : pathToMap, NewInitialZoomLevel, FileFormat, saveOptions, graphics);
-            
+
             var batchBlock = new BatchBlock<IEnumerable<SubChunkData>>(128, new GroupingDataflowBlockOptions() {BoundedCapacity = 128*8, EnsureOrdered = false});
 
             // Todo, put in own class
@@ -135,7 +135,7 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                     {
                         throw new ArgumentOutOfRangeException("Test Error in dbBLock");
                     }*/
-                    
+
                     var toInsert = datas.Where(x => x.FoundInDb == false)
                         .Select(x => new Checksum {Crc32 = x.Crc32, LevelDbKey = x.Key, Profile = Profile}).ToList();
 
@@ -354,7 +354,7 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
         public event EventHandler<ChunksRenderedEventArgs> ChunksRendered;
         public event EventHandler<ZoomRenderedEventArgs> ZoomLevelRenderd;
-       
+
 
         public void Init()
         {
@@ -427,7 +427,7 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
             }
             else
             {
-                
+
                 settings = new Settings()
                 {
                     Dimension = Dimension,

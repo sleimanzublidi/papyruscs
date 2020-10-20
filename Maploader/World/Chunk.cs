@@ -17,7 +17,7 @@ namespace Maploader.World
         }
 
         public Chunk(int x, int z)
-        { 
+        {
             X = x;
             Z = z;
         }

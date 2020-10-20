@@ -79,7 +79,7 @@ namespace Maploader.World
             for (byte subChunkIdx = 0; subChunkIdx < 15; subChunkIdx++)
             {
                 key[9] = subChunkIdx;
-                UIntPtr length;     
+                UIntPtr length;
                 var data = db.Get(key, out length);
                 if (data != null)
                 {
@@ -165,7 +165,7 @@ namespace Maploader.World
 
         }
 
-        private LookupTable.BlockLookupTable Table { get; } = new LookupTable.BlockLookupTable();
+        public LookupTable.BlockLookupTable Table { get; } = new LookupTable.BlockLookupTable();
 
         public IEnumerable<byte[]> Keys
         {
@@ -309,7 +309,7 @@ namespace Maploader.World
                             int x = (position >> 8) & 0xF;
                             int y = position & 0xF;
                             int z = (position >> 4) & 0xF;
-                            
+
                             var dictData = new Dictionary<string, Object>();
                             dictData.Add("val", blockData);
                             BlockData b = new BlockData(Table.Lookups[Table.CreateKey(blockId, 0)].name, dictData)
@@ -409,7 +409,7 @@ namespace Maploader.World
             string name = "";
             var nbt = new NbtReader(ms, false);
             var dictParams = new Dictionary<string, Object>();
-            
+
             nbt.ReadToFollowing();
             if (!nbt.IsCompound)
                 throw new Exception("Could not read nbt");
@@ -433,20 +433,20 @@ namespace Maploader.World
                                     if((subtag.Name == "direction") || (subtag.Name == "facing_direction") || (subtag.Name == "open_bit"))
                                     {
                                         int subtagvalue = GetTagValue(subtag);
-                                        dictParams.Add(subtag.Name, subtagvalue); 
+                                        dictParams.Add(subtag.Name, subtagvalue);
                                     }
                                     if((subtag.Name == "color") || (subtag.Name == "lever_direction"))
                                     {
                                         if(subtag.TagType == NbtTagType.String)
                                         {
-                                            dictParams.Add(subtag.Name, subtag.StringValue); 
+                                            dictParams.Add(subtag.Name, subtag.StringValue);
                                         }
                                     }
                                 }
                             break;
                         case "val":
                             int value = GetTagValue(tag);
-                            dictParams.Add(tag.Name, value); 
+                            dictParams.Add(tag.Name, value);
                             break;
                     }
                 }

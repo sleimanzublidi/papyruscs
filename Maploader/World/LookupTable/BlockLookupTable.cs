@@ -13,6 +13,8 @@ namespace Maploader.World.LookupTable
             var json = File.ReadAllText(path);
 
             var table = JsonConvert.DeserializeObject<List<LookUp>>(json);
+            this.RunTimeIds = table;
+
             foreach (var t in table)
             {
                 if (t.data.HasValue)
@@ -25,6 +27,8 @@ namespace Maploader.World.LookupTable
                 }
             }
         }
+
+        public IReadOnlyList<LookUp> RunTimeIds { get; }
 
         public Dictionary<UInt32, LookUp> Lookups { get; } = new Dictionary<UInt32, LookUp>();
 
