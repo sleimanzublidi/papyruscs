@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using fNbt;
 using leveldb_sharp_std;
@@ -34,34 +31,34 @@ namespace Maploader.World
                 pathDb = Path.Combine(pathDb, "db");
             }
 
-            WorldPath = DbPathToWorldPath(pathDb);
+            this.WorldPath = this.DbPathToWorldPath(pathDb);
 
-            LoadWorldName();
-            LoadLevelDat();
-            LoadDatabase();
+            this.LoadWorldName();
+            this.LoadLevelDat();
+            this.LoadDatabase();
         }
 
         private void LoadWorldName()
         {
-            string worldNameFilePath = Path.Combine(WorldPath, "levelname.txt");
-            WorldName = File.ReadLines(worldNameFilePath).First();
+            string worldNameFilePath = Path.Combine(this.WorldPath, "levelname.txt");
+            this.WorldName = File.ReadLines(worldNameFilePath).First();
         }
 
         private void LoadLevelDat()
         {
-            string levelDatFilePath = Path.Combine(WorldPath, "level.dat");
+            string levelDatFilePath = Path.Combine(this.WorldPath, "level.dat");
             // Process the level.dat file (NBT).
             // Hopefully will get changes merged into CoreFNBT to allow reading this specific variation on the NBT file format.
         }
 
         private void LoadDatabase()
         {
-            _dbPath = Path.Combine(WorldPath, "db");
+            this._dbPath = Path.Combine(this.WorldPath, "db");
 
             var options = new Options();
             options.Compression = CompressionType.ZlibRaw;
 
-            db = new DB(options, _dbPath);
+            this.db = new DB(options, this._dbPath);
         }
         private string DbPathToWorldPath(string dbPath)
         {
@@ -70,7 +67,7 @@ namespace Maploader.World
 
         public ChunkData GetOverworldChunkData(int x, int z)
         {
-            if (db == null)
+            if (this.db == null)
                 throw new InvalidOperationException("Open Db first");
 
             var ret = new ChunkData();
@@ -79,8 +76,7 @@ namespace Maploader.World
             for (byte subChunkIdx = 0; subChunkIdx < 15; subChunkIdx++)
             {
                 key[9] = subChunkIdx;
-                UIntPtr length;
-                var data = db.Get(key, out length);
+                var data = this.db.Get(key, out UIntPtr length);
                 if (data != null)
                 {
                     var subChunkData = new SubChunkData()
@@ -101,20 +97,20 @@ namespace Maploader.World
         public Chunk GetChunk(int x, int z, ChunkData data)
         {
             Chunk c;
-            if (ChunkPool != null)
+            if (this.ChunkPool != null)
             {
-                c = ChunkPool.Get();
+                c = this.ChunkPool.Get();
                 c.X = x;
                 c.Z = z;
             }
             else
             {
-               c = new Chunk(x, z);
+                c = new Chunk(x, z);
             }
 
             foreach (var subChunkRaw in data.SubChunks)
             {
-                CopySubChunkToChunk(c, subChunkRaw.Index, subChunkRaw.Data);
+                this.CopySubChunkToChunk(c, subChunkRaw.Index, subChunkRaw.Data);
             }
 
             return c;
@@ -123,7 +119,7 @@ namespace Maploader.World
         public Chunk GetChunk(int x, int z)
         {
             bool haveData = false;
-            if (db == null)
+            if (this.db == null)
                 throw new InvalidOperationException("Open Db first");
 
             var subChunks = new Dictionary<byte, byte[]>();
@@ -133,8 +129,7 @@ namespace Maploader.World
             for (byte subChunkIdx = 0; subChunkIdx < 15; subChunkIdx++)
             {
                 key[9] = subChunkIdx;
-                UIntPtr length;
-                var data = db.Get(key, out length);
+                var data = this.db.Get(key, out UIntPtr length);
                 if (data != null)
                 {
                     subChunks[subChunkIdx] = data;
@@ -145,9 +140,9 @@ namespace Maploader.World
             if (!haveData) return null;
 
             Chunk c;
-            if (ChunkPool != null)
+            if (this.ChunkPool != null)
             {
-                c = ChunkPool.Get();
+                c = this.ChunkPool.Get();
                 c.X = x;
                 c.Z = z;
             }
@@ -158,7 +153,7 @@ namespace Maploader.World
 
             foreach (var subChunkRaw in subChunks)
             {
-                CopySubChunkToChunk(c, subChunkRaw);
+                this.CopySubChunkToChunk(c, subChunkRaw);
             }
 
             return c;
@@ -171,7 +166,7 @@ namespace Maploader.World
         {
             get
             {
-                foreach (var data in db)
+                foreach (var data in this.db)
                 {
                     yield return data.Key;
                 }
@@ -179,15 +174,15 @@ namespace Maploader.World
         }
 
 
-        public IEnumerable<byte[]> OverworldKeys => GetDimension(0);
-        public IEnumerable<byte[]> NetherKeys => GetDimension(1);
-        public IEnumerable<byte[]> EndKeys => GetDimension(2);
+        public IEnumerable<byte[]> OverworldKeys => this.GetDimension(0);
+        public IEnumerable<byte[]> NetherKeys => this.GetDimension(1);
+        public IEnumerable<byte[]> EndKeys => this.GetDimension(2);
 
         public IEnumerable<byte[]> GetDimension(int index)
         {
             if (index == 0)
             {
-                foreach (var element in db)
+                foreach (var element in this.db)
                 {
                     var key = element.Key;
                     if (key.Length != 10)
@@ -200,7 +195,7 @@ namespace Maploader.World
             }
             else
             {
-                foreach (var element in db)
+                foreach (var element in this.db)
                 {
                     var key = element.Key;
                     if (key.Length != 14)
@@ -223,7 +218,7 @@ namespace Maploader.World
             var playerKeyIndicator = Encoding.UTF8.GetBytes("player_server");
 
             // Get all records whose key begins with "player_server"
-            var playerData = db
+            var playerData = this.db
                 .Where(kvp => kvp.Key.Take(playerKeyIndicator.Length).SequenceEqual(playerKeyIndicator))
                 .Select(i => new
                 {
@@ -263,7 +258,7 @@ namespace Maploader.World
         {
             get
             {
-                foreach (var element in db)
+                foreach (var element in this.db)
                 {
                     var key = Coordinate2D.FromKey(element.Key);
                     if (key != null)
@@ -277,7 +272,7 @@ namespace Maploader.World
 
         private void CopySubChunkToChunk(Chunk chunk, KeyValuePair<byte, byte[]> subChunkRawData)
         {
-            CopySubChunkToChunk(chunk, subChunkRawData.Key, subChunkRawData.Value);
+            this.CopySubChunkToChunk(chunk, subChunkRawData.Key, subChunkRawData.Value);
         }
 
         private void CopySubChunkToChunk(Chunk chunk, byte yIndex, byte[] data)
@@ -312,7 +307,7 @@ namespace Maploader.World
 
                             var dictData = new Dictionary<string, Object>();
                             dictData.Add("val", blockData);
-                            BlockData b = new BlockData(Table.Lookups[Table.CreateKey(blockId, 0)].name, dictData)
+                            BlockData b = new BlockData(this.Table.Lookups[this.Table.CreateKey(blockId, 0)].name, dictData)
                             {
                                 Version = 0,
                             };
@@ -419,30 +414,30 @@ namespace Maploader.World
                 name = nbt.ReadValueAs<string>();
 
                 nbt.ReadToNextSibling();
-                while(nbt.TagType != NbtTagType.End)
+                while (nbt.TagType != NbtTagType.End)
                 {
                     fNbt.Tags.NbtTag tag = nbt.ReadAsTag();
-                    switch(tag.Name)
+                    switch (tag.Name)
                     {
                         case "version":
                             continue;
                         case "states":
-                                IEnumerable<fNbt.Tags.NbtTag> enumTag = (IEnumerable<fNbt.Tags.NbtTag>)tag;
-                                foreach(var subtag in enumTag)
+                            IEnumerable<fNbt.Tags.NbtTag> enumTag = (IEnumerable<fNbt.Tags.NbtTag>)tag;
+                            foreach (var subtag in enumTag)
+                            {
+                                if ((subtag.Name == "direction") || (subtag.Name == "facing_direction") || (subtag.Name == "open_bit"))
                                 {
-                                    if((subtag.Name == "direction") || (subtag.Name == "facing_direction") || (subtag.Name == "open_bit"))
+                                    int subtagvalue = GetTagValue(subtag);
+                                    dictParams.Add(subtag.Name, subtagvalue);
+                                }
+                                if ((subtag.Name == "color") || (subtag.Name == "lever_direction"))
+                                {
+                                    if (subtag.TagType == NbtTagType.String)
                                     {
-                                        int subtagvalue = GetTagValue(subtag);
-                                        dictParams.Add(subtag.Name, subtagvalue);
-                                    }
-                                    if((subtag.Name == "color") || (subtag.Name == "lever_direction"))
-                                    {
-                                        if(subtag.TagType == NbtTagType.String)
-                                        {
-                                            dictParams.Add(subtag.Name, subtag.StringValue);
-                                        }
+                                        dictParams.Add(subtag.Name, subtag.StringValue);
                                     }
                                 }
+                            }
                             break;
                         case "val":
                             int value = GetTagValue(tag);
@@ -470,7 +465,7 @@ namespace Maploader.World
             {
                 bs.Write(x);
                 bs.Write(z);
-                bs.Write((byte) 47);
+                bs.Write((byte)47);
             }
 
             return key;
@@ -480,8 +475,8 @@ namespace Maploader.World
         {
             try
             {
-                db.Dispose();
-                db = null;
+                this.db.Dispose();
+                this.db = null;
             }
             catch
             {
@@ -491,12 +486,12 @@ namespace Maploader.World
 
         public byte[] GetData(byte[] key)
         {
-            return db[key];
+            return this.db[key];
         }
 
         public ChunkData GetChunkData(GroupedChunkSubKeys groupedChunkSubKeys)
         {
-            if (db == null)
+            if (this.db == null)
                 throw new InvalidOperationException("Open Db first");
 
             var firstSubChunk = groupedChunkSubKeys.Subchunks.First();
@@ -511,8 +506,7 @@ namespace Maploader.World
             foreach (var kvp in groupedChunkSubKeys.Subchunks)
             {
                 var key = kvp.Value;
-                UIntPtr length;
-                var data = db.Get(key.Key, out length);
+                var data = this.db.Get(key.Key, out UIntPtr length);
                 if (data != null)
                 {
                     var subChunkData = new SubChunkData()
@@ -534,21 +528,20 @@ namespace Maploader.World
 
         public ChunkData GetChunkData(IGrouping<ulong, LevelDbWorldKey2> groupedChunkSubKeys)
         {
-            if (db == null)
+            if (this.db == null)
                 throw new InvalidOperationException("Open Db first");
 
             var ret = new ChunkData
             {
-                X = (int) ((ulong) groupedChunkSubKeys.Key >> 32),
-                Z = (int)((ulong)groupedChunkSubKeys.Key & 0xffffffff)
+                X = (int)(groupedChunkSubKeys.Key >> 32),
+                Z = (int)(groupedChunkSubKeys.Key & 0xffffffff)
             };
 
 
             foreach (var kvp in groupedChunkSubKeys)
             {
                 var key = kvp;
-                UIntPtr length;
-                var data = db.Get(key.Key, out length);
+                var data = this.db.Get(key.Key, out UIntPtr length);
                 if (data != null)
                 {
                     var subChunkData = new SubChunkData()
@@ -568,7 +561,7 @@ namespace Maploader.World
 
         public ChunkData GetChunkData(int x, int z)
         {
-            if (db == null)
+            if (this.db == null)
                 throw new InvalidOperationException("Open Db first");
 
             var ret = new ChunkData
@@ -578,13 +571,12 @@ namespace Maploader.World
             };
 
 
-            foreach (var kvp in Enumerable.Range(0,15))
+            foreach (var kvp in Enumerable.Range(0, 15))
             {
                 var key = CreateKey(x, z);
                 key[9] = (byte)kvp;
 
-                UIntPtr length;
-                var data = db.Get(key, out length);
+                var data = this.db.Get(key, out UIntPtr length);
                 if (data != null)
                 {
                     var subChunkData = new SubChunkData()
@@ -602,7 +594,7 @@ namespace Maploader.World
             return ret;
         }
 
-        private static int GetTagValue (fNbt.Tags.NbtTag tag)
+        private static int GetTagValue(fNbt.Tags.NbtTag tag)
         {
             switch (tag.TagType)
             {
@@ -613,10 +605,10 @@ namespace Maploader.World
                     return tag.IntValue;
 
                 case NbtTagType.Short:
-                    return  tag.ShortValue;
+                    return tag.ShortValue;
 
                 case NbtTagType.Long:
-                    return  (int)tag.LongValue;
+                    return (int)tag.LongValue;
 
                 default:
                     return 0;

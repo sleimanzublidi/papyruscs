@@ -1,10 +1,10 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using Maploader.World;
 
 namespace PapyrusCs.Database
 {
+    [DebuggerDisplay("{X} {Z} {SubChunkId} [{KeyType}]")]
     public struct LevelDbWorldKey2
     {
         public byte[] Key { get; }

@@ -40,7 +40,7 @@ namespace PapyrusCs
                 return 0;
             }
 
-            return CommandLine.Parser.Default.ParseArguments<Options, TestOptions, FindOptions>(newargs)
+            return CommandLine.Parser.Default.ParseArguments<Options, TestOptions>(newargs)
                 .MapResult(
                     (Options opts) =>
                     {
@@ -48,7 +48,6 @@ namespace PapyrusCs
                         return RunMapCommand(opts);
                     },
                     (TestOptions opts) => RunTestOptions(opts),
-                    (FindOptions opts) => RunFindOptions(opts),
                     errs => 1);
         }
 
@@ -107,14 +106,7 @@ namespace PapyrusCs
 
             if (String.IsNullOrEmpty(options.MinecraftWorld))
             {
-                if (InteractiveMode(options))
-                {
-                    isInteractiveMode = true;
-                }
-                else
-                {
-                    return -1;
-                }
+                return -1;
             }
 
             var world = new World();
