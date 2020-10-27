@@ -54,6 +54,8 @@
 
     <script src="playersData.js"></script>
     <script src="poiData.js"></script>
+    <script src="portalData.js"></script>
+    <script src="villageData.js"></script>
 
     <div id="map"></div>
     <script>
@@ -399,12 +401,25 @@
 
         // * Points of Interest *
 
-        if (typeof (poiData) !== "undefined") {
+        var poiList = [];
 
+        if (typeof (poiData) !== "undefined") {
+            poiList = poiList.concat(poiData.points);
+        }
+
+        if (typeof (villageData) !== "undefined") {
+            poiList = poiList.concat(poiData.villages);
+        }
+
+        if (typeof (portalData) !== "undefined") {
+            poiList = poiList.concat(poiData.portals);
+        }
+
+        if (poiList.length > 0) {
             var poiFeatures = [[], [], []];
 
-            for (var poiIndex in poiData.points) {
-                var poi = poiData.points[poiIndex];
+            for (var poiIndex in poiList) {
+                var poi = poiList[poiIndex];
 
                 if (!poi.visible) {
                     continue;
