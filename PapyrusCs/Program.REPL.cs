@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Maploader.Core;
 using Maploader.World;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PapyrusCs.Database;
 
 namespace PapyrusCs
@@ -47,36 +50,15 @@ namespace PapyrusCs
                 {
                     break;
                 }
-
-                if (command.StartsWith("find", StringComparison.OrdinalIgnoreCase) && command.Length > 4)
+                else if(command.StartsWith("find", StringComparison.OrdinalIgnoreCase) && command.Length > 4)
                 {
                     Find(world, command.Substring(5).Split(' ', StringSplitOptions.RemoveEmptyEntries));
                 }
-
-                if (command.StartsWith("test", StringComparison.OrdinalIgnoreCase) && command.Length > 4)
-                {
-                    Test(world, command.Substring(5).Split(' ', StringSplitOptions.RemoveEmptyEntries));
-                }
-
                 else
                 {
-                    FindVillages(world, "".Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                    //FindPortals(world, "".Split(' ', StringSplitOptions.RemoveEmptyEntries));
                 }
             }
-        }
-
-        private static void Test(World world, string[] tokens)
-        {
-            int centerX = 1536;
-            int centerZ = 0;
-
-            var sortedKeys = world.GetDimension(0)
-                .Select(bytes => new LevelDbWorldKey2(bytes))
-                .OrderBy(dbKey => PointDistance(dbKey.X, dbKey.Z, centerX / 16, centerZ / 16))
-                .OrderBy(dbKey => Angle(dbKey.X, dbKey.Z, centerX / 16, centerZ / 16))
-                .ThenBy(dbKey => dbKey.SubChunkId)
-                .Take(25 * 15)
-                .ToList();
         }
 
         private static void Find(World world, string[] tokens)
@@ -89,7 +71,7 @@ namespace PapyrusCs
                 }
                 else if (tokens[0].StartsWith("portal", StringComparison.OrdinalIgnoreCase))
                 {
-                    FindVillages(world, tokens);
+                    FindPortals(world, tokens);
                 }
                 else
                 {
@@ -200,18 +182,7 @@ namespace PapyrusCs
                 }
             }
 
-            bool center = false;
-            int centerX = 0;
-            int centerZ = 0;
-            if (tokens.Any(t => t.Contains(',')))
-            {
-                var values = tokens.First(t => t.Contains(',')).Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (values.Length == 2)
-                {
-                    center = int.TryParse(values[0], out centerX) &&
-                             int.TryParse(values[1], out centerZ);
-                }
-            }
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
 
             var sortedVillages = villages
                 .OrderBy(village => PointDistance(village.CenterX, village.CenterZ, centerX, centerZ))
@@ -232,15 +203,150 @@ namespace PapyrusCs
                 }
             }
 
+            if (tokens.Contains("json"))
+            {
+                const string jsonTemplate = "var villageData = { villages: [] }";
+                var portalData = JObject.Parse(jsonTemplate.Substring(jsonTemplate.IndexOf('=') + 1).Trim().TrimEnd(';'));
+
+                foreach (var village in sortedVillages)
+                {
+                    ((JArray)portalData["villages"]).Add(JObject.FromObject(new
+                    {
+                        name = "Village",
+                        icon = "\uf4d9",
+                        dimensionId = 0,
+                        position = new[] { village.CenterX, village.CenterY, village.CenterZ},
+                        color = "Black",
+                        visible = true
+                    }));
+                }
+
+                var json = JsonConvert.SerializeObject(portalData, Formatting.Indented);
+                File.WriteAllText("villageData.js",
+                    jsonTemplate.Replace("{ villages: [] }", json),
+                    Encoding.UTF8);
+            }
+
             return villages;
         }
 
         private static List<Portal> FindPortals(World world, string[] tokens)
         {
+            var portalBytes = "portal".Select(x => (byte)x).ToArray();
+
             var portals = new List<Portal>();
+            {
+                var portal = new Portal();
+
+                foreach (var key in world.Keys)
+                {
+                    if (key.Length > 8 && key[8] == (int)KeyType.SubChunkPrefix)
+                    {
+                        continue;
+                    }
+
+                    if (key.Locate(portalBytes).Length == 0)
+                        continue;
+
+                    var data = world.GetData(key);
+                    if (data != null && data.Length > 0)
+                    {
+                        var ms = new MemoryStream(data);
+                        var nbt = new fNbt.NbtReader(ms, false);
+
+                        var tags = ReadTags(nbt);
+                        if (tags.Contains("TpX"))
+                        {
+                            foreach (var tag in tags)
+                            {
+                                switch (tag.Name)
+                                {
+                                    case "DimId":
+                                        portal = new Portal();
+                                        portals.Add(portal);
+
+                                        portal.Dimension = (Dimension)Convert.ToInt32(tag.Value);
+                                        break;
+
+                                    case "TpX":
+                                        portal.X = Convert.ToInt32(tag.Value);
+                                        break;
+
+                                    case "TpY":
+                                        portal.Y = Convert.ToInt32(tag.Value);
+                                        break;
+
+                                    case "TpZ":
+                                        portal.Z = Convert.ToInt32(tag.Value);
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                            }
+                        }
+
+                        ms.Dispose();
+                    }
+                }
+            }
 
             var dimension = GetDimension(tokens);
+            if (dimension != Dimension.Unknown)
+            {
+                portals = portals.Where(p => p.Dimension == dimension)
+                                 .ToList();
+            }
 
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
+
+            var sortedPortals = portals
+                .OrderBy(portal => portal.Dimension)
+                .ThenBy(portal =>
+                     portal.Dimension == Dimension.Nether ?
+                     PointDistance(portal.X * 16, portal.Z * 16, centerX, centerZ) :
+                     PointDistance(portal.X, portal.Z, centerX, centerZ)
+                    )
+                .ToList();
+
+            foreach (var portal in sortedPortals)
+            {
+                Console.WriteLine();
+                Console.Write($"{portal.Dimension} {portal.X} {portal.Y} {portal.Z}");
+                if (portal.Dimension == Dimension.Nether)
+                {
+                    Console.WriteLine($" ({portal.X * 16} {portal.Y * 16} {portal.Z * 16})");
+                }
+                else
+                {
+                    Console.WriteLine($" ({portal.X / 16} {portal.Y / 16} {portal.Z / 16})");
+                }
+            }
+
+            if (tokens.Contains("json"))
+            {
+                const string jsonTemplate = "var portalData = { portals: [] }";
+                var portalData = JObject.Parse(jsonTemplate.Substring(jsonTemplate.IndexOf('=') + 1).Trim().TrimEnd(';'));
+
+                foreach (var portal in sortedPortals)
+                {
+                    ((JArray)portalData["portals"]).Add(JObject.FromObject(new
+                    {
+                        name = "Portal",
+                        icon = "\uf52a",
+                        dimensionId = (int)portal.Dimension,
+                        position = new[] { portal.X, portal.Y, portal.Z },
+                        color = "Black",
+                        visible = true
+                    }));
+                }
+
+                var json = JsonConvert.SerializeObject(portalData, Formatting.Indented);
+                File.WriteAllText("portalData.js",
+                    jsonTemplate.Replace("{ portals: [] }", json),
+                    Encoding.UTF8);
+            }
 
             return portals;
         }
@@ -261,22 +367,17 @@ namespace PapyrusCs
                 return;
             }
 
-            var chunkKeys = GetChunkKeys(world, dimension);
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
+
+            var chunkKeys = world.GetDimension((int)dimension)
+                .Select(x => new LevelDbWorldKey2(x)).GroupBy(x => x.XZ).Select(x => x.Key)
+                .Select(key => new ChunkKey { Key = key, X = (int)((ulong)key >> 32), Z = (int)((ulong)key & 0xffffffff) })
+                .ToList();
+
+            Console.WriteLine($"{chunkKeys.Count()} chunks found in the {dimension}.");
             if (!chunkKeys.Any())
             {
                 return;
-            }
-
-            int centerX = 0;
-            int centerZ = 0;
-            if (tokens.Any(t => t.Contains(',')))
-            {
-                var values = tokens.First(t => t.Contains(',')).Split(',', StringSplitOptions.RemoveEmptyEntries);
-                if (values.Length == 2)
-                {
-                    int.TryParse(values[0], out centerX);
-                    int.TryParse(values[1], out centerZ);
-                }
             }
 
             int i = 0;
@@ -322,37 +423,52 @@ namespace PapyrusCs
         private static Dimension GetDimension(string[] tokens)
         {
             if (tokens.Any(t => t.Equals("0") ||
-                tokens.Any( t => t.Equals("overworld", StringComparison.OrdinalIgnoreCase))))
+                tokens.Any(t => t.StartsWith("dim0", StringComparison.OrdinalIgnoreCase))) ||
+                tokens.Any(t => t.Equals("overworld", StringComparison.OrdinalIgnoreCase)))
             {
                 return Dimension.Overworld;
             }
             else if (tokens.Any(t => t.Equals("1") ||
-                     tokens.Any(t => t.Equals("nether", StringComparison.OrdinalIgnoreCase))))
+                     tokens.Any(t => t.StartsWith("dim1", StringComparison.OrdinalIgnoreCase))) ||
+                     tokens.Any(t => t.Equals("nether", StringComparison.OrdinalIgnoreCase)))
             {
                 return Dimension.Nether;
             }
             else if (tokens.Any(t => t.Equals("2") ||
-                     tokens.Any(t => t.Equals("end", StringComparison.OrdinalIgnoreCase))))
+                     tokens.Any(t => t.StartsWith("dim2", StringComparison.OrdinalIgnoreCase))) ||
+                     tokens.Any(t => t.Equals("end", StringComparison.OrdinalIgnoreCase)))
             {
                 return Dimension.End;
             }
 
-            var token = tokens.FirstOrDefault(t => t.StartsWith("dim")) ?? "dim0";
-            if (token.StartsWith("dim0", StringComparison.OrdinalIgnoreCase))
-            {
-                return Dimension.Overworld;
-            }
-            else if (token.StartsWith("dim1", StringComparison.OrdinalIgnoreCase))
-            {
-                return Dimension.Nether;
-            }
-            else if (token.StartsWith("dim2", StringComparison.OrdinalIgnoreCase))
-            {
-                return Dimension.End;
-            }
-
-            Console.WriteLine($"'{token}' is not a valid dimension.");
             return Dimension.Unknown;
+        }
+
+        private static void ParseCenterPoint(string[] tokens, out bool defined, out int centerX, out int centerZ)
+        {
+            defined = false;
+            centerX = 0;
+            centerZ = 0;
+            if (tokens.Any(t => t.Contains(',')))
+            {
+                var values = tokens.First(t => t.Contains(',')).Split(',', StringSplitOptions.RemoveEmptyEntries);
+                if (values.Length == 2)
+                {
+                    defined = int.TryParse(values[0], out centerX) &&
+                              int.TryParse(values[1], out centerZ);
+
+                    if (!defined)
+                    {
+                        centerX = 0;
+                        centerZ = 0;
+                    }
+                    else if (GetDimension(tokens) == Dimension.Nether)
+                    {
+                        centerX = centerX * 16;
+                        centerZ = centerZ * 16;
+                    }
+                }
+            }
         }
 
         private static TagList ReadTags(fNbt.NbtReader nbt)
@@ -390,18 +506,6 @@ namespace PapyrusCs
             }
 
             return tags;
-        }
-
-        private static List<ChunkKey> GetChunkKeys(World world, Dimension dimension)
-        {
-            var chuckKeys = world.GetDimension((int)dimension)
-                .Select(x => new LevelDbWorldKey2(x)).GroupBy(x => x.XZ).Select(x => x.Key)
-                .Select(key => new ChunkKey { Key = key, X = (int)((ulong)key >> 32), Z = (int)((ulong)key & 0xffffffff) })
-                .ToList();
-
-            Console.WriteLine($"{chuckKeys.Count()} chunks found in the {dimension}.");
-
-            return chuckKeys;
         }
 
         private static int PointDistance(double x, double z, double centerX, double centerZ)
