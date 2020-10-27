@@ -2,7 +2,7 @@
   "profiles": {
     "PapyrusCs": {
       "commandName": "Project",
-      "commandLineArgs": "-w \"E:\\Minecraft\\Quests\"",
+      "commandLineArgs": "repl -w \"E:\\Minecraft\\Quests\"",
       "workingDirectory": "E:\\Minecraft\\DebugMap\\Temp"
     }
   }

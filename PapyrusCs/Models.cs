@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace PapyrusCs
 {
@@ -13,23 +12,11 @@ namespace PapyrusCs
         End = 2
     }
 
-    [DebuggerDisplay("{Name}:{Value}")]
-    public struct Tag
+    public struct ChunkKey
     {
-        public string Name;
-        public object Value;
-    }
-
-    public class TagList : List<Tag>
-    {
-        public void Add(string name, object value)
-        {
-            this.Add(new Tag { Name = name, Value = value });
-        }
-
-        public IEnumerable<string> Names => this.Select(t => t.Name);
-
-        public bool Contains(string tagName) => this.Names.Contains(tagName);
+        public ulong Key;
+        public int X;
+        public int Z;
     }
 
     [DebuggerDisplay("{CenterX} {CenterY} {CenterZ}")]
@@ -66,6 +53,16 @@ namespace PapyrusCs
     [DebuggerDisplay("{Dimension} {X} {Y} {Z}")]
     public class Portal
     {
+        public Dimension Dimension { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Z { get; set; }
+    }
+
+    [DebuggerDisplay("{Name} {X} {Y} {Z}")]
+    public class Player
+    {
+        public string UniqueID { get; set; }
         public Dimension Dimension { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
