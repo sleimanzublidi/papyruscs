@@ -75,7 +75,7 @@ namespace PapyrusCs
                 }
                 else
                 {
-                    FindById(world, tokens[0], tokens);
+                    FindBlockById(world, tokens[0], tokens);
                 }
 
                 return;
@@ -351,7 +351,7 @@ namespace PapyrusCs
             return portals;
         }
 
-        private static void FindById(World world, string blockId, string[] tokens)
+        private static void FindBlockById(World world, string blockId, string[] tokens)
         {
             var runTimeId = world.Table.RunTimeIds.FirstOrDefault(r => r.name == blockId.ToLower() || r.name == "minecraft:" + blockId.ToLower());
             if (runTimeId == null)
@@ -381,7 +381,7 @@ namespace PapyrusCs
             }
 
             int i = 0;
-            int nextOut = 1000;
+            int nextOut = 100;
 
             var sortedChunks = chunkKeys
                 .OrderBy(chunk => PointDistance(chunk.X * 16, chunk.Z * 16, centerX, centerZ))
@@ -406,7 +406,7 @@ namespace PapyrusCs
 
                 if (i > nextOut)
                 {
-                    nextOut += 1000;
+                    nextOut += 100;
                     if (Console.ReadKey(true).KeyChar == 'c' ||
                         Console.ReadKey(true).KeyChar == 'C')
                     {
