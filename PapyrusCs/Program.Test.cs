@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace PapyrusCs
+﻿namespace PapyrusCs
 {
     public partial class Program
     {

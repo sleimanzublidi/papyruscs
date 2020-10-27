@@ -23,30 +23,20 @@ namespace PapyrusCs
         private static Stopwatch _time = new Stopwatch();
         private static Stopwatch _time2 = new Stopwatch();
 
-        static int Main(string[] args)
+        private static int Main(string[] args)
         {
 
             var newargs = args;
 
-            if (args.Length == 0 || !(new string[] { "map", "test", "find" }.Contains(args[0])))
+            if (args.Length == 0 || !(new string[] { "map", "repl" }.Contains(args[0])))
             {
                 newargs = new[] { "repl" }.Concat((args)).ToArray();
             }
 
-            var result = CommandLine.Parser.Default.ParseArguments<ReplOptions>(newargs);
-            if (result.Tag == ParserResultType.Parsed)
-            {
-                result.WithParsed((options) => RunRepl(options));
-                return 0;
-            }
-
-            return CommandLine.Parser.Default.ParseArguments<Options, TestOptions>(newargs)
+            return CommandLine.Parser.Default.ParseArguments<Options, ReplOptions, TestOptions>(newargs)
                 .MapResult(
-                    (Options opts) =>
-                    {
-                        opts.Loaded = true;
-                        return RunMapCommand(opts);
-                    },
+                    (Options opts) => RunMapCommand(opts),
+                    (ReplOptions opts) => RunRepl(opts),
                     (TestOptions opts) => RunTestOptions(opts),
                     errs => 1);
         }
@@ -54,11 +44,6 @@ namespace PapyrusCs
         private static int RunMapCommand(Options options)
         {
             _time = Stopwatch.StartNew();
-            bool isInteractiveMode = false;
-            if (!options.Loaded)
-            {
-                return -1;
-            }
 
             // Parameter Validation
             try
@@ -265,34 +250,19 @@ namespace PapyrusCs
                 Console.WriteLine();
             }
 
-
-            if (isInteractiveMode)
-            {
-                Console.WriteLine("Press enter to close this window!");
-                Console.ReadLine();
-            }
-
             world.Close();
             return 0;
         }
 
-
-
-
         private static IRenderStrategy InstanciateStrategy(Options options)
         {
-            IRenderStrategy strat = null;
             switch (options.Strategy)
             {
                 case Strategy.Dataflow:
                 default:
                     //strat = new DataFlowStrategy<SKBitmap>(new Maploader.Renderer.Imaging.SkiaSharp());
-                    strat = new DataFlowStrategy<Bitmap>(new Maploader.Renderer.Imaging.SystemDrawing());
-                    break;
-
+                    return new DataFlowStrategy<Bitmap>(new Maploader.Renderer.Imaging.SystemDrawing());
             }
-
-            return strat;
         }
 
         private static void ConfigureStrategy(IRenderStrategy strat, Options options,
@@ -317,7 +287,7 @@ namespace PapyrusCs
             strat.ForceOverwrite = options.ForceOverwrite;
             strat.AllWorldKeys = allSubChunks;
             strat.InitialDiameter = extendedDia;
-            strat.InitialZoomLevel = (int)zoom;
+            strat.InitialZoomLevel = zoom;
             strat.World = world;
             strat.TotalChunkCount = _totalChunk;
             strat.TexturePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "textures");
@@ -338,9 +308,6 @@ namespace PapyrusCs
             strat.Profile = options.Profile;
             strat.DeleteExistingUpdateFolder = options.DeleteExistingUpdateFolder;
         }
-
-
-
 
         private static int CalculateZoom(int xmax, int xmin, int zmax, int zmin, int chunksPerDimension, out int extendedDia)
         {
@@ -394,9 +361,5 @@ namespace PapyrusCs
             Interlocked.Add(ref _totalChunksRendered, e.RenderedChunks);
             Console.Write($"\r{_totalChunksRendered} of {_totalChunk} Chunks render @ {(_totalChunksRendered) / _time2.Elapsed.TotalSeconds:0.0} cps     ");
         }
-
-
     }
-
 }
-

@@ -12,7 +12,8 @@ using PapyrusCs.Database;
 
 namespace PapyrusCs
 {
-    public static class TestCommands {
+    public static class TestCommands
+    {
         private static Stopwatch _time = new Stopwatch();
 
         public static void TestDbRead(TestOptions opts)
@@ -42,9 +43,9 @@ namespace PapyrusCs
             Parallel.ForEach(keys, new ParallelOptions() { MaxDegreeOfParallelism = opts.Threads }, key =>
               {
                   Interlocked.Increment(ref i);
-                //var value = world.GetChunk(key.GetIntLe(0), key.GetIntLe(4));
+                  //var value = world.GetChunk(key.GetIntLe(0), key.GetIntLe(4));
 
-                var k = key.Key;
+                  var k = key.Key;
                   for (int y = 0; y < 16; y++)
                   {
                       k[9] = (byte)y;
@@ -101,8 +102,8 @@ namespace PapyrusCs
                 //var chunk = world.GetChunk(gcsk.Subchunks.First().Value.X, gcsk.Subchunks.First().Value.Z);
                 //var chunk = world.GetChunk(key.First().X, key.First().Z);
 #if true
-                var X = (int)((ulong)key >> 32);
-                var Z = (int)((ulong)key & 0xffffffff);
+                var X = (int)(key >> 32);
+                var Z = (int)(key & 0xffffffff);
                 var cd = world.GetChunkData(X, Z);
                 var c = world.GetChunk(cd.X, cd.Z, cd);
 #else
@@ -163,8 +164,8 @@ namespace PapyrusCs
                 var ret = new List<ChunkData>();
                 foreach (var u in key2)
                 {
-                    var X = (int)((ulong)u >> 32);
-                    var Z = (int)((ulong)u & 0xffffffff);
+                    var X = (int)(u >> 32);
+                    var Z = (int)(u & 0xffffffff);
                     var cd = world.GetChunkData(X, Z);
                     ret.Add(cd);
                 }
@@ -258,8 +259,8 @@ namespace PapyrusCs
                 var ret = new List<ChunkData>();
                 foreach (var u in key2)
                 {
-                    var X = (int)((ulong)u >> 32);
-                    var Z = (int)((ulong)u & 0xffffffff);
+                    var X = (int)(u >> 32);
+                    var Z = (int)(u & 0xffffffff);
                     var cd = world.GetChunkData(X, Z);
                     ret.Add(cd);
                 }

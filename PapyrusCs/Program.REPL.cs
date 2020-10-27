@@ -14,7 +14,7 @@ namespace PapyrusCs
 {
     public partial class Program
     {
-        private static void RunRepl(ReplOptions options)
+        private static int RunRepl(ReplOptions options)
         {
             var world = new World
             {
@@ -32,7 +32,7 @@ namespace PapyrusCs
                 Console.WriteLine($"Could not open world at '{options.MinecraftWorld}'!. Did you specify the .../db folder?");
                 Console.WriteLine("The reason was:");
                 Console.WriteLine(ex.Message);
-                return;
+                return -1;
             }
 
             Console.WriteLine();
@@ -59,6 +59,8 @@ namespace PapyrusCs
                     //FindPortals(world, "".Split(' ', StringSplitOptions.RemoveEmptyEntries));
                 }
             }
+
+            return 0;
         }
 
         private static void Find(World world, string[] tokens)
