@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using fNbt.Tags;
 using Maploader.World;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -187,62 +188,39 @@ namespace PapyrusCs
 
         private static List<Portal> FindPortals(World world, string[] tokens)
         {
-            var portalBytes = "portal".Select(x => (byte)x).ToArray();
+            var portalIndicator = Encoding.UTF8.GetBytes("portals");
+            var portalsKey = world.Keys
+                .Where(key => key.Take(portalIndicator.Length).SequenceEqual(portalIndicator))
+                .FirstOrDefault();
 
             var portals = new List<Portal>();
+            if (portalsKey == null)
             {
-                var portal = new Portal();
+                return portals;
+            }
 
-                foreach (var key in world.Keys)
+            var data = world.GetData(portalsKey);
+            using (var memoryStream = new MemoryStream(data))
+            {
+                // portals
+                // --data
+                // ----PortalRecords
+
+                var nbtReader = new fNbt.NbtReader(memoryStream, false);
+                if (nbtReader.ReadToFollowing("PortalRecords"))
                 {
-                    if (key.Length > 8 && key[8] == (int)KeyType.SubChunkPrefix)
+                    var tagList = nbtReader.ReadAsTag() as NbtList;
+                    foreach (var tag in tagList)
                     {
-                        continue;
-                    }
-
-                    if (key.Locate(portalBytes).Length == 0)
-                        continue;
-
-                    var data = world.GetData(key);
-                    if (data != null && data.Length > 0)
-                    {
-                        var ms = new MemoryStream(data);
-                        var nbt = new fNbt.NbtReader(ms, false);
-
-                        var tags = nbt.ReadTags();
-                        if (tags.Contains("TpX"))
+                        var portal = new Portal
                         {
-                            foreach (var tag in tags)
-                            {
-                                switch (tag.Name)
-                                {
-                                    case "DimId":
-                                        portal = new Portal();
-                                        portals.Add(portal);
+                            Dimension = (Dimension)tag["DimId"].IntValue,
+                            X = tag["TpX"].IntValue,
+                            Y = tag["TpY"].IntValue,
+                            Z = tag["TpZ"].IntValue
+                        };
 
-                                        portal.Dimension = (Dimension)Convert.ToInt32(tag.Value);
-                                        break;
-
-                                    case "TpX":
-                                        portal.X = Convert.ToInt32(tag.Value);
-                                        break;
-
-                                    case "TpY":
-                                        portal.Y = Convert.ToInt32(tag.Value);
-                                        break;
-
-                                    case "TpZ":
-                                        portal.Z = Convert.ToInt32(tag.Value);
-                                        break;
-
-                                    default:
-                                        break;
-                                }
-
-                            }
-                        }
-
-                        ms.Dispose();
+                        portals.Add(portal);
                     }
                 }
             }
