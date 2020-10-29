@@ -42,7 +42,7 @@ namespace PapyrusCs
         public int CenterZ => this.Z0 + (this.ZSize / 2);
         public int CenterY => this.Y0 + (this.YSize / 2);
 
-        public readonly List<long> Dwellers = new List<long>();
+        public readonly List<Entity> Dwellers = new List<Entity>();
         public readonly List<Villager> Villagers = new List<Villager>();
     }
 
@@ -102,6 +102,26 @@ namespace PapyrusCs
     {
         public string UniqueID { get; set; }
         public Dimension Dimension { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Z { get; set; }
+    }
+
+    [DebuggerDisplay("{UniqueID} {Identifier} {X} {Y} {Z}")]
+    public class Entity
+    {
+        public long UniqueID { get; set; }
+        public string Identifier { get; set; }
+        public Dimension Dimension { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Z { get; set; }
+    }
+
+    [DebuggerDisplay("{ID} {X} {Y} {Z}")]
+    public class BlockEntity
+    {
+        public string ID { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public int Z { get; set; }

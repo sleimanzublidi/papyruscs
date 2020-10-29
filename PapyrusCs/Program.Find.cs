@@ -34,18 +34,26 @@ namespace PapyrusCs
                 {
                     FindPlayers(world, tokens);
                 }
-                else
+                else if (tokens[0].Equals("e", StringComparison.OrdinalIgnoreCase) ||
+                         tokens[0].Equals("entity", StringComparison.OrdinalIgnoreCase) ||
+                         tokens[0].Equals("entities", StringComparison.OrdinalIgnoreCase))
                 {
-                    FindBlockById(world, tokens[0], tokens);
+                    FindEntities(world, tokens);
+                }
+                else if (tokens[0].Equals("be", StringComparison.OrdinalIgnoreCase) ||
+                         tokens[0].Equals("blockentity", StringComparison.OrdinalIgnoreCase) ||
+                         tokens[0].Equals("blockentities", StringComparison.OrdinalIgnoreCase))
+                {
+                    FindBlockEntities(world, tokens);
                 }
 
                 return;
             }
 
             Console.WriteLine();
-            Console.WriteLine("usage: find {what} {where:dimension} {where:position}");
+            Console.WriteLine("usage: find {what} \"{filter}\" {where:dimension} {center-position:x,z} {json} {png}");
             Console.WriteLine();
-            Console.WriteLine("   ex: find diamond overworld 0,0");
+            Console.WriteLine("  what: village, portal, map, player, entity, blockentity");
         }
 
         private static List<Village> FindVillages(World world, string[] tokens)
@@ -69,6 +77,14 @@ namespace PapyrusCs
                 .ToList();
 
             var villages = new List<Village>();
+
+            if (villageIds.Count == 0)
+            {
+                Console.WriteLine("No villages found.");
+                return villages;
+            }
+
+            var entities = GetEntities(world).Select(e => e.Item2);
 
             foreach (var group in villageIds)
             {
@@ -97,7 +113,12 @@ namespace PapyrusCs
                                 {
                                     foreach (var tags in (nbt.ReadAsTag() as NbtList))
                                     {
-                                        village.Dwellers.Add(tags["ID"].LongValue);
+                                        var id = tags["ID"].LongValue;
+                                        var entity = entities.FirstOrDefault(entities => entities.UniqueID == id);
+                                        if (entity != null)
+                                        {
+                                            village.Dwellers.Add(entity);
+                                        }
                                     }
                                 }
                             }
@@ -206,6 +227,10 @@ namespace PapyrusCs
 
             if (tokens.Contains("json"))
             {
+                File.WriteAllText("villages.json",
+                    JsonConvert.SerializeObject(villages, Formatting.Indented),
+                    Encoding.UTF8);
+
                 const string jsonTemplate = "var villageData = { villages: [] }";
                 var portalData = JObject.Parse(jsonTemplate.Substring(jsonTemplate.IndexOf('=') + 1).Trim().TrimEnd(';'));
 
@@ -306,6 +331,10 @@ namespace PapyrusCs
 
             if (tokens.Contains("json"))
             {
+                File.WriteAllText("portals.json",
+                    JsonConvert.SerializeObject(portals, Formatting.Indented),
+                    Encoding.UTF8);
+
                 const string jsonTemplate = "var portalData = { portals: [] }";
                 var portalData = JObject.Parse(jsonTemplate.Substring(jsonTemplate.IndexOf('=') + 1).Trim().TrimEnd(';'));
 
@@ -418,8 +447,9 @@ namespace PapyrusCs
 
             if (tokens.Contains("json"))
             {
-                var json = JsonConvert.SerializeObject(nMaps, Formatting.Indented);
-                File.WriteAllText("maps.json", json, Encoding.UTF8);
+                File.WriteAllText("maps.json",
+                    JsonConvert.SerializeObject(nMaps, Formatting.Indented),
+                    Encoding.UTF8);
             }
 
             return maps;
@@ -474,6 +504,10 @@ namespace PapyrusCs
 
             if (tokens.Contains("json"))
             {
+                File.WriteAllText("players.json",
+                    JsonConvert.SerializeObject(players, Formatting.Indented),
+                    Encoding.UTF8);
+
                 const string jsonTemplate = "var playersData = { players: [] }";
                 var playersData = JObject.Parse(jsonTemplate.Substring(jsonTemplate.IndexOf('=') + 1).Trim().TrimEnd(';'));
 
@@ -497,6 +531,121 @@ namespace PapyrusCs
             }
 
             return players;
+        }
+
+        private static List<Entity> FindEntities(World world, string[] tokens)
+        {
+            var entities = GetEntities(world).Select(e => e.Item2).ToList();
+
+            if (tokens.Any(t => t.Contains('"')))
+            {
+                var values = tokens.First(t => t.Contains('"')).Split('"', StringSplitOptions.RemoveEmptyEntries);
+                if (values.Length == 1)
+                {
+                    entities = entities.Where(e => e.Identifier.Contains(values[0], StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+            }
+
+            var dimension = GetDimension(tokens);
+            if (dimension != Dimension.Unknown)
+            {
+                entities = entities.Where(p => p.Dimension == dimension)
+                                   .ToList();
+            }
+
+            Console.WriteLine($"{entities.Count} entities found.");
+
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
+
+            var sortedEntities = entities
+                .OrderBy(entities => entities.Dimension)
+                .ThenBy(entity =>
+                     entity.Dimension == Dimension.Nether ?
+                     PointDistance(entity.X * 16, entity.Z * 16, centerX, centerZ) :
+                     PointDistance(entity.X, entity.Z, centerX, centerZ)
+                    )
+                .ToList();
+
+            foreach (var entity in sortedEntities)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"    {entity.UniqueID} {entity.Identifier} {entity.X} {entity.Z} {entity.Y}");
+            }
+
+            if (tokens.Contains("json"))
+            {
+                var grouped = new Dictionary<string, Entity[]>();
+                foreach (var group in entities.GroupBy(e => e.Identifier).OrderBy(e => e.Key))
+                {
+                    grouped[group.Key] = group
+                        .OrderBy(entities => entities.Dimension)
+                        .ThenBy(entity => entity.Dimension == Dimension.Nether ?
+                                          PointDistance(entity.X * 16, entity.Z * 16, centerX, centerZ) :
+                                          PointDistance(entity.X, entity.Z, centerX, centerZ))
+                    .ToArray();
+                }
+
+                File.WriteAllText("entities.json",
+                    JsonConvert.SerializeObject(grouped, Formatting.Indented),
+                    Encoding.UTF8);
+            }
+
+            return entities;
+        }
+
+        private static List<BlockEntity> FindBlockEntities(World world, string[] tokens)
+        {
+            var entities = GetBlockEntities(world).Select(e => e.Item2).ToList();
+
+            if (tokens.Any(t => t.Contains('"')))
+            {
+                var values = tokens.First(t => t.Contains('"')).Split('"', StringSplitOptions.RemoveEmptyEntries);
+                if (values.Length == 1)
+                {
+                    entities = entities.Where(e => e.ID.Contains(values[0], StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+            }
+
+            //var dimension = GetDimension(tokens);
+            //if (dimension != Dimension.Unknown)
+            //{
+            //    entities = entities.Where(p => p.Dimension == dimension)
+            //                       .ToList();
+            //}
+
+            Console.WriteLine($"{entities.Count} entities found.");
+
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
+
+            var sortedEntities = entities
+                .OrderBy(entity => entity.ID)
+                .ThenBy(entity =>PointDistance(entity.X, entity.Z, centerX, centerZ))
+                .ToList();
+
+            foreach (var entity in sortedEntities)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"    {entity.ID} {entity.X} {entity.Z} {entity.Y}");
+            }
+
+            if (tokens.Contains("json"))
+            {
+                var grouped = new Dictionary<string, BlockEntity[]>();
+                foreach (var group in entities.GroupBy(e => e.ID).OrderBy(e => e.Key))
+                {
+                    grouped[group.Key] = group
+                        .OrderBy(entity => PointDistance(entity.X, entity.Z, centerX, centerZ))
+                    .ToArray();
+                }
+
+                File.WriteAllText("blockEntities.json",
+                    JsonConvert.SerializeObject(grouped, Formatting.Indented),
+                    Encoding.UTF8);
+            }
+
+            return entities;
         }
 
         private static void FindBlockById(World world, string blockId, string[] tokens)
@@ -566,6 +715,93 @@ namespace PapyrusCs
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Entities encompass all dynamic, moving objects throughout the Minecraft world.
+        /// https://minecraft.gamepedia.com/Entity
+        /// </summary>
+        private static List<(byte[], Entity)> GetEntities(World world)
+        {
+            var entityKeys = world.Keys
+                .Where(key => key.Length > 8 && key[8] == (int)KeyType.Entity)
+                .ToList();
+
+            var entities = new List<(byte[], Entity)>();
+
+            foreach (var key in entityKeys)
+            {
+                var data = world.GetData(key);
+                if (data == null || data.Length == 0)
+                    continue;
+
+                using var ms = new MemoryStream(data);
+                var nbt = new fNbt.NbtReader(ms, false);
+                var tags = nbt.ReadAsTag();
+
+                var entity = new Entity
+                {
+                    UniqueID = tags["UniqueID"].LongValue,
+                    Identifier = tags["identifier"].StringValue,
+                    Dimension = (Dimension)tags["LastDimensionId"].IntValue,
+                };
+
+                if (tags["Pos"] is NbtList pos)
+                {
+                    entity.X = (int)pos[0].FloatValue;
+                    entity.Y = (int)pos[1].FloatValue;
+                    entity.Z = (int)pos[2].FloatValue;
+                }
+
+                entities.Add((key, entity));
+            }
+
+            return entities;
+        }
+
+        /// <summary>
+        /// A block entity is extra data associated with a block, beyond the finite set of block states associated with each block.
+        /// https://minecraft.gamepedia.com/Block_entity
+        /// </summary>
+        private static List<(byte[], BlockEntity)> GetBlockEntities(World world)
+        {
+            var entityKeys = world.Keys
+                .Where(key => key.Length > 8 && key[8] == (int)KeyType.BlockEntity)
+                .ToList();
+
+            var entities = new List<(byte[], BlockEntity)>();
+
+            foreach (var key in entityKeys)
+            {
+                var data = world.GetData(key);
+                if (data == null || data.Length == 0)
+                    continue;
+
+                using var ms = new MemoryStream(data);
+                var nbt = new fNbt.NbtReader(ms, false);
+                var tags = nbt.ReadAsTag();
+
+                var id = tags["id"]?.StringValue;
+
+                if (id != null)
+                {
+                    var entity = new BlockEntity
+                    {
+                        ID = tags["id"].StringValue,
+                        X = tags["x"].IntValue,
+                        Y = tags["y"].IntValue,
+                        Z = tags["z"].IntValue,
+                    };
+
+                    entities.Add((key, entity));
+                }
+                else
+                {
+                    // Maps
+                }
+            }
+
+            return entities;
         }
 
         private static int PointDistance(double x, double z, double centerX, double centerZ)
