@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
 namespace PapyrusCs
@@ -26,6 +25,8 @@ namespace PapyrusCs
     [DebuggerDisplay("{CenterX} {CenterY} {CenterZ}")]
     public class Village
     {
+        public Guid VillageID { get; set; }
+
         public int X0 { get; set; }
         public int X1 { get; set; }
         public int Y0 { get; set; }
@@ -41,13 +42,24 @@ namespace PapyrusCs
         public int CenterZ => this.Z0 + (this.ZSize / 2);
         public int CenterY => this.Y0 + (this.YSize / 2);
 
+        public readonly List<long> Dwellers = new List<long>();
         public readonly List<Villager> Villagers = new List<Villager>();
     }
 
-    [DebuggerDisplay("{Name} {X} {Y} {Z}")]
+    [DebuggerDisplay("{VillagerID} {X} {Y} {Z} ({Workstation})")]
     public class Villager
     {
         public long VillagerID { get; set; }
+        public string Name { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Z { get; set; }
+        public Workstation Workstation { get; set; }
+    }
+
+    [DebuggerDisplay("{Name} {X} {Y} {Z}")]
+    public class Workstation
+    {
         public string Name { get; set; }
         public int X { get; set; }
         public int Y { get; set; }

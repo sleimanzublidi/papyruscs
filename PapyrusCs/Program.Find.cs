@@ -50,109 +50,131 @@ namespace PapyrusCs
 
         private static List<Village> FindVillages(World world, string[] tokens)
         {
-            //var villageIndicator = Encoding.UTF8.GetBytes("VILLAGE");
-            //var villageKey = world.Keys
-            //    .Where(key => key.Take(villageIndicator.Length).SequenceEqual(villageIndicator))
-            //    .Select(k => Encoding.UTF8.GetString(k))
-            //    .ToList();
-
-            //const string village_dweller_regex = "VILLAGE_[0-9a-f\\-]+_DWELLERS";
-            //const string village_info_regex = "VILLAGE_[0-9a-f\\-]+_INFO";
-            //const string village_player_regex = "VILLAGE_[0-9a-f\\-]+_PLAYERS";
-            //const string village_poi_regex = "VILLAGE_[0-9a-f\\-]+_POI";
-
-            var villageBytes = "VILLAGE".Select(x => (byte)x).ToArray();
-            var villages = new List<Village>();
+            string getVillageId(byte[] key)
             {
-                var village = new Village();
-                var villager = new Villager();
+                return Encoding.UTF8
+                    .GetString(key)
+                    .Replace("VILLAGE_", "")
+                    .Replace("_DWELLERS", "")
+                    .Replace("_INFO", "")
+                    .Replace("_POI", "")
+                    .Replace("_RAID", "")
+                    .Replace("_PLAYERS", "");
+            }
 
-                foreach (var key in world.Keys)
+            var villageIndicator = Encoding.UTF8.GetBytes("VILLAGE");
+            var villageIds = world.Keys
+                .Where(key => key.Take(villageIndicator.Length).SequenceEqual(villageIndicator))
+                .GroupBy(k => getVillageId(k))
+                .ToList();
+
+            var villages = new List<Village>();
+
+            foreach (var group in villageIds)
+            {
+                var village = new Village
                 {
-                    if (key.Length > 8 && key[8] == (int)KeyType.SubChunkPrefix)
+                    VillageID = Guid.Parse(group.Key)
+                };
+
+                villages.Add(village);
+
+                foreach (var key in group)
+                {
+                    var sKey = Encoding.UTF8.GetString(key);
+
+                    // Entity/mob ID's. Dwellers include villagers, iron golems, and cats.
+                    if (sKey.EndsWith("_DWELLERS"))
                     {
-                        continue;
+                        var data = world.GetData(key);
+                        using var ms = new MemoryStream(data);
+                        var nbt = new fNbt.NbtReader(ms, false);
+                        if (nbt.ReadToFollowing("Dwellers"))
+                        {
+                            while(nbt.ReadToFollowing())
+                            {
+                                if (nbt.TagName == "actors")
+                                {
+                                    foreach (var tags in (nbt.ReadAsTag() as NbtList))
+                                    {
+                                        village.Dwellers.Add(tags["ID"].LongValue);
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    if (key.Locate(villageBytes).Length == 0)
-                        continue;
-
-                    var data = world.GetData(key);
-                    if (data != null && data.Length > 0)
+                    // The village bounding box.
+                    else if (sKey.EndsWith("_INFO"))
                     {
-                        var ms = new MemoryStream(data);
+                        var data = world.GetData(key);
+                        using var ms = new MemoryStream(data);
                         var nbt = new fNbt.NbtReader(ms, false);
+                        var tags = nbt.ReadAsTag();
 
-                        var tags = nbt.ReadTags();
-                        if (tags.Contains("X0"))
+                        village.X0 = tags["X0"].IntValue;
+                        village.X1 = tags["X1"].IntValue;
+                        village.Z0 = tags["Z0"].IntValue;
+                        village.Z1 = tags["Z1"].IntValue;
+                        village.Y0 = tags["Y0"].IntValue;
+                        village.Y1 = tags["Y1"].IntValue;
+                    }
+
+                    // A mapping between villagers and work stations.
+                    else if (sKey.EndsWith("_POI"))
+                    {
+                        var data = world.GetData(key);
+                        using var ms = new MemoryStream(data);
+                        var nbt = new fNbt.NbtReader(ms, false);
+                        if (nbt.ReadToFollowing("POI"))
                         {
-                            village = new Village();
-                            villages.Add(village);
-
-                            foreach (var tag in tags)
+                            var poiList = nbt.ReadAsTag() as NbtList;
+                            foreach (var poi in poiList)
                             {
-                                switch (tag.Name)
+                                var villager = new Villager
                                 {
-                                    case "X0":
-                                        village.X0 = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "X1":
-                                        village.X1 = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "Y0":
-                                        village.Y0 = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "Y1":
-                                        village.Y1 = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "Z0":
-                                        village.Z0 = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "Z1":
-                                        village.Z1 = Convert.ToInt32(tag.Value);
-                                        break;
-                                    default:
-                                        break;
-                                }
+                                    VillagerID = poi["VillagerID"].LongValue
+                                };
 
-                            }
-                        }
-
-                        if (tags.Contains("VillagerID"))
-                        {
-                            foreach (var tag in tags)
-                            {
-                                switch (tag.Name)
+                                var instances = poi["instances"] as NbtList;
+                                foreach (var instance in instances)
                                 {
-                                    case "VillagerID":
-                                        villager = new Villager
+                                    var name = instance["Name"]?.StringValue;
+                                    if (name == "villager")
+                                    {
+                                        villager.Name = name;
+                                        villager.X = instance["X"].IntValue;
+                                        villager.Y = instance["Y"].IntValue;
+                                        villager.Z = instance["Z"].IntValue;
+                                    }
+                                    else if (!string.IsNullOrEmpty(name))
+                                    {
+                                        villager.Workstation = new Workstation
                                         {
-                                            VillagerID = Convert.ToInt64(tag.Value)
+                                            Name = name,
+                                            X = instance["X"].IntValue,
+                                            Y = instance["Y"].IntValue,
+                                            Z = instance["Z"].IntValue
                                         };
-                                        village.Villagers.Add(villager);
-                                        break;
-                                    case "Name":
-                                        villager.Name = Convert.ToString(tag.Value);
-                                        break;
-                                    case "X":
-                                        villager.X = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "Y":
-                                        villager.Y = Convert.ToInt32(tag.Value);
-                                        break;
-                                    case "Z":
-                                        villager.Z = Convert.ToInt32(tag.Value);
-                                        break;
-                                    default:
-                                        break;
+                                    }
                                 }
+
+                                village.Villagers.Add(villager);
                             }
                         }
+                    }
 
-                        ms.Dispose();
+                    else if (sKey.EndsWith("_RAID"))
+                    {
+                    }
+
+                    else if (sKey.EndsWith("_PLAYERS"))
+                    {
                     }
                 }
             }
+
+            Console.WriteLine($"{villages.Count} villages found.");
 
             ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
 
@@ -171,7 +193,14 @@ namespace PapyrusCs
                 Console.WriteLine($"     Villagers: {village.Villagers.Count}");
                 foreach (var villager in village.Villagers)
                 {
-                    Console.WriteLine($"                {villager.Name} {villager.X} {villager.Z}");
+                    if (villager.Workstation == null)
+                    {
+                        Console.WriteLine($"                {villager.Name} {villager.X} {villager.Z}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"                {villager.Workstation.Name} {villager.Workstation.X} {villager.Workstation.Z}");
+                    }
                 }
             }
 
@@ -247,6 +276,8 @@ namespace PapyrusCs
                 portals = portals.Where(p => p.Dimension == dimension)
                                  .ToList();
             }
+
+            Console.WriteLine($"{portals.Count} portals found.");
 
             ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
 
