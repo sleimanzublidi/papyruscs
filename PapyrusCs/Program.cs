@@ -25,7 +25,6 @@ namespace PapyrusCs
 
         private static int Main(string[] args)
         {
-
             var newargs = args;
 
             if (args.Length == 0 || !(new string[] { "map", "repl" }.Contains(args[0])))

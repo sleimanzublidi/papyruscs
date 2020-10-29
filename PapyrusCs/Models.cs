@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.Serialization;
+using Newtonsoft.Json;
 
 namespace PapyrusCs
 {
@@ -59,7 +63,29 @@ namespace PapyrusCs
         public int Z { get; set; }
     }
 
-    [DebuggerDisplay("{Name} {X} {Y} {Z}")]
+    [DebuggerDisplay("{MapId} {Dimension} {CenterX} {CenterZ}")]
+    public class Map
+    {
+        public long MapId { get; set; }
+        public long ParentMapId { get; set; }
+
+        public Dimension Dimension { get; set; }
+        public bool IsFullyExplored { get; set; }
+        public bool IsLocked { get; set; }
+        public bool UnlimitedTracking { get; set; }
+        public int CenterX { get; set; }
+        public int CenterZ { get; set; }
+        public int Height { get; set; }
+        public int Width { get; set; }
+        public int Scale { get; set; }
+
+        public bool IsEmpty => this.Colors.Distinct().Count() == 1;
+
+        [JsonIgnore]
+        public Color[] Colors { get; set; } = new Color[0];
+    }
+
+    [DebuggerDisplay("{UniqueID} {Dimension} {X} {Y} {Z}")]
     public class Player
     {
         public string UniqueID { get; set; }

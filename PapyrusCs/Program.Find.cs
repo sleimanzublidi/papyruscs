@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,10 @@ namespace PapyrusCs
                 {
                     FindPortals(world, tokens);
                 }
+                else if (tokens[0].StartsWith("map", StringComparison.OrdinalIgnoreCase))
+                {
+                    FindMaps(world, tokens);
+                }
                 else if (tokens[0].StartsWith("players", StringComparison.OrdinalIgnoreCase))
                 {
                     FindPlayers(world, tokens);
@@ -45,6 +50,17 @@ namespace PapyrusCs
 
         private static List<Village> FindVillages(World world, string[] tokens)
         {
+            //var villageIndicator = Encoding.UTF8.GetBytes("VILLAGE");
+            //var villageKey = world.Keys
+            //    .Where(key => key.Take(villageIndicator.Length).SequenceEqual(villageIndicator))
+            //    .Select(k => Encoding.UTF8.GetString(k))
+            //    .ToList();
+
+            //const string village_dweller_regex = "VILLAGE_[0-9a-f\\-]+_DWELLERS";
+            //const string village_info_regex = "VILLAGE_[0-9a-f\\-]+_INFO";
+            //const string village_player_regex = "VILLAGE_[0-9a-f\\-]+_PLAYERS";
+            //const string village_poi_regex = "VILLAGE_[0-9a-f\\-]+_POI";
+
             var villageBytes = "VILLAGE".Select(x => (byte)x).ToArray();
             var villages = new List<Village>();
             {
@@ -284,73 +300,98 @@ namespace PapyrusCs
             return portals;
         }
 
-        private static void FindBlockById(World world, string blockId, string[] tokens)
+        private static List<Map> FindMaps(World world, string[] tokens)
         {
-            var runTimeId = world.Table.RunTimeIds.FirstOrDefault(r => r.name == blockId.ToLower() || r.name == "minecraft:" + blockId.ToLower());
-            if (runTimeId == null)
-            {
-                Console.WriteLine($"'{blockId}' is not a valid block id.");
-                return;
-            }
-            blockId = runTimeId.name;
-
-            var dimension = GetDimension(tokens);
-            if (dimension == Dimension.Unknown)
-            {
-                return;
-            }
-
-            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
-
-            var chunkKeys = world.GetDimension((int)dimension)
-                .Select(x => new LevelDbWorldKey2(x)).GroupBy(x => x.XZ).Select(x => x.Key)
-                .Select(key => new ChunkKey { Key = key, X = (int)((ulong)key >> 32), Z = (int)((ulong)key & 0xffffffff) })
+            var mapIndicator = Encoding.UTF8.GetBytes("map_");
+            var mapKeys = world.Keys
+                .Where(key => key.Take(mapIndicator.Length).SequenceEqual(mapIndicator))
                 .ToList();
 
-            Console.WriteLine($"{chunkKeys.Count()} chunks found in the {dimension}.");
-            if (!chunkKeys.Any())
+            var maps = new List<Map>();
+            if (mapKeys.Count == 0)
             {
-                return;
+                return maps;
             }
 
-            int i = 0;
-            int nextOut = 100;
-
-            var sortedChunks = chunkKeys
-                .OrderBy(chunk => PointDistance(chunk.X * 16, chunk.Z * 16, centerX, centerZ))
-                .ToList();
-
-            foreach (var key in sortedChunks)
+            foreach (var key in mapKeys)
             {
-                i++;
+                //Console.WriteLine(Encoding.UTF8.GetString(key));
 
-                var chunkData = world.GetChunkData(key.X, key.Z);
-                var chunk = world.GetChunk(chunkData.X, chunkData.Z, chunkData);
+                var data = world.GetData(key);
+                using var memoryStream = new MemoryStream(data);
+                var nbtReader = new fNbt.NbtReader(memoryStream, false);
+                var tags = nbtReader.ReadAsTag();
 
-                var blocks = chunk.Blocks
-                    .Where(x => x.Value.Block.Id == blockId)
-                    .OrderBy(b => PointDistance(b.Value.X, b.Value.Z, centerX, centerZ));
-
-                foreach (var b in blocks)
+                var map = new Map
                 {
-                    Console.WriteLine($"{b.Value.Block.Id} {b.Value.X + chunk.X * 16} {b.Value.Z + chunk.Z * 16} {b.Value.Y} ");
-                    i++;
+                    MapId = tags["mapId"].LongValue,
+                    ParentMapId = tags["parentMapId"].LongValue,
+                    Dimension = (Dimension)tags["dimension"].IntValue,
+                    CenterX = tags["xCenter"].IntValue,
+                    CenterZ = tags["zCenter"].IntValue,
+                    IsLocked = tags["mapLocked"].IntValue == 1,
+                    IsFullyExplored = tags["fullyExplored"].IntValue == 1,
+                    UnlimitedTracking = tags["unlimitedTracking"].IntValue == 1,
+                    Scale = tags["scale"].IntValue,
+                    Height = tags["height"].IntValue,
+                    Width = tags["width"].IntValue,
+                };
+
+                var colorBytes = tags["colors"].ByteArrayValue;
+                map.Colors = new Color[colorBytes.Length / 4];
+                for (int i = 0; i < colorBytes.Length; i += 4)
+                {
+                    byte r = colorBytes[i + 0];
+                    byte g = colorBytes[i + 1];
+                    byte b = colorBytes[i + 2];
+                    byte a = colorBytes[i + 3];
+
+                    map.Colors[i / 4] = Color.FromArgb(a, r, g, b);
+                    var hex = r.ToString("X2") + g.ToString("X2") + b.ToString("X2") + a.ToString("X2");
                 }
 
-                if (i > nextOut)
+                maps.Add(map);
+            }
+
+            var nMaps = maps.Where(m => !m.IsEmpty)
+                            .OrderBy(m => m.IsFullyExplored)
+                            .ThenByDescending(m => m.Scale)
+                            .ToList();
+
+            Console.WriteLine($"{nMaps.Count} maps found.");
+
+            if (tokens.Contains("png"))
+            {
+                foreach (var map in nMaps)
                 {
-                    nextOut += 100;
-                    if (Console.ReadKey(true).KeyChar == 'c' ||
-                        Console.ReadKey(true).KeyChar == 'C')
-                    {
+                    if (map.Colors[0] == Color.Black)
                         continue;
-                    }
-                    else
+
+                    const int tileSize = 16;
+                    using var bitmap = new Bitmap(map.Width * tileSize, map.Height * tileSize);
+                    using (var graphic = Graphics.FromImage(bitmap))
                     {
-                        break;
+                        int c = 0;
+                        for (int y = 0; y < map.Height; y++)
+                            for (int x = 0; x < map.Width; x++)
+                            {
+                                var brush = new SolidBrush(map.Colors[c]);
+                                var rect = new Rectangle(x * tileSize, y * tileSize, tileSize, tileSize);
+                                graphic.FillRectangle(brush, rect);
+                                c++;
+                            }
                     }
+                    bitmap.Save(filename: $"map_{map.MapId}.Png", System.Drawing.Imaging.ImageFormat.Png);
                 }
             }
+
+            if (tokens.Contains("json"))
+            {
+                var json = JsonConvert.SerializeObject(nMaps, Formatting.Indented);
+                File.WriteAllText("maps.json", json, Encoding.UTF8);
+            }
+
+            return maps;
         }
 
         private static List<Player> FindPlayers(World world, string[] tokens)
@@ -427,6 +468,75 @@ namespace PapyrusCs
             return players;
         }
 
+        private static void FindBlockById(World world, string blockId, string[] tokens)
+        {
+            var runTimeId = world.Table.RunTimeIds.FirstOrDefault(r => r.name == blockId.ToLower() || r.name == "minecraft:" + blockId.ToLower());
+            if (runTimeId == null)
+            {
+                Console.WriteLine($"'{blockId}' is not a valid block id.");
+                return;
+            }
+            blockId = runTimeId.name;
+
+            var dimension = GetDimension(tokens);
+            if (dimension == Dimension.Unknown)
+            {
+                return;
+            }
+
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
+
+            var chunkKeys = world.GetDimension((int)dimension)
+                .Select(x => new LevelDbWorldKey2(x)).GroupBy(x => x.XZ).Select(x => x.Key)
+                .Select(key => new ChunkKey { Key = key, X = (int)((ulong)key >> 32), Z = (int)((ulong)key & 0xffffffff) })
+                .ToList();
+
+            Console.WriteLine($"{chunkKeys.Count()} chunks found in the {dimension}.");
+            if (!chunkKeys.Any())
+            {
+                return;
+            }
+
+            int i = 0;
+            int nextOut = 100;
+
+            var sortedChunks = chunkKeys
+                .OrderBy(chunk => PointDistance(chunk.X * 16, chunk.Z * 16, centerX, centerZ))
+                .ToList();
+
+            foreach (var key in sortedChunks)
+            {
+                i++;
+
+                var chunkData = world.GetChunkData(key.X, key.Z);
+                var chunk = world.GetChunk(chunkData.X, chunkData.Z, chunkData);
+
+                var blocks = chunk.Blocks
+                    .Where(x => x.Value.Block.Id == blockId)
+                    .OrderBy(b => PointDistance(b.Value.X, b.Value.Z, centerX, centerZ));
+
+                foreach (var b in blocks)
+                {
+                    Console.WriteLine($"{b.Value.Block.Id} {b.Value.X + chunk.X * 16} {b.Value.Z + chunk.Z * 16} {b.Value.Y} ");
+                    i++;
+                }
+
+                if (i > nextOut)
+                {
+                    nextOut += 100;
+                    if (Console.ReadKey(true).KeyChar == 'c' ||
+                        Console.ReadKey(true).KeyChar == 'C')
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
         private static int PointDistance(double x, double z, double centerX, double centerZ)
         {
             return (int)Math.Sqrt(((x - centerX) * (x - centerX)) + ((z - centerZ) * (z - centerZ)));
@@ -440,3 +550,4 @@ namespace PapyrusCs
         }
     }
 }
+

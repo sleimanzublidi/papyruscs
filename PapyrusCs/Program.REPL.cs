@@ -28,6 +28,8 @@ namespace PapyrusCs
                 return -1;
             }
 
+            //Dump(world, new string[] { });
+
             Console.WriteLine();
             Console.WriteLine("REPL Ready");
 

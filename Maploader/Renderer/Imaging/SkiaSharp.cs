@@ -34,7 +34,7 @@ namespace Maploader.Renderer.Imaging
         private static SKBitmap LoadTga(string file)
         {
             SKColorType colorType;
-            
+
             using (var image = Pfim.Pfim.FromFile(file))
             {
                 var newData = image.Data;
@@ -199,7 +199,7 @@ namespace Maploader.Renderer.Imaging
             return pool.Get();
         }
 
-  
+
 
         public void ReturnImage(SKBitmap b)
         {
