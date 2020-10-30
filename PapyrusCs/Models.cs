@@ -126,4 +126,19 @@ namespace PapyrusCs
         public int Y { get; set; }
         public int Z { get; set; }
     }
+
+    [DebuggerDisplay("{Name} {Id}")]
+    public struct Biome
+    {
+        public string Name;
+        public byte Id;
+        public int[] RGB;
+
+        public Biome(string name, byte id, int[] rgb)
+        {
+            this.Name = name;
+            this.Id = id;
+            this.RGB = rgb;
+        }
+    }
 }

@@ -18,7 +18,11 @@ namespace PapyrusCs
         {
             if (tokens.Length > 0)
             {
-                if (tokens[0].StartsWith("village", StringComparison.OrdinalIgnoreCase))
+                if (tokens[0].StartsWith("bio", StringComparison.OrdinalIgnoreCase))
+                {
+                    FindBiomes(world, tokens);
+                }
+                else if (tokens[0].StartsWith("village", StringComparison.OrdinalIgnoreCase))
                 {
                     FindVillages(world, tokens);
                 }
@@ -54,6 +58,72 @@ namespace PapyrusCs
             Console.WriteLine("usage: find {what} \"{filter}\" {where:dimension} {center-position:x,z} {json} {png}");
             Console.WriteLine();
             Console.WriteLine("  what: village, portal, map, player, entity, blockentity");
+        }
+
+        private static void FindBiomes(World world, string[] tokens)
+        {
+            var biomeKeys = world.Keys
+                .Where(key => (key.Length == 9 && key[8] == (int)KeyType.Data2D) ||
+                              (key.Length == 13 && key[12] == (int)KeyType.Data2D))
+                .ToList();
+
+            var list = new List<(int, int, Biome[])>();
+            var ids = Biomes.All.Select(b => b.Id).ToArray();
+
+            foreach (var key in biomeKeys)
+            {
+                int chunkX = key.Length > 4 ? GetInt(key, 0) : 0;
+                int chunkZ = key.Length > 8 ? GetInt(key, 4) : 0;
+
+                var data = world.GetData(key);
+
+                var elevations = new short[16, 16];
+                var biomes = new byte[16, 16];
+
+                var foundBiomes = new HashSet<Biome>();
+
+                for (int i = 0; i < 256; i++)
+                {
+                    var height = BitConverter.ToInt16(data, i * 2);
+                    elevations[i % 16, i / 16] = height;
+                    // the biomes are stored after the elevations;
+                    byte b = data[(256 * 2) + i];
+                    biomes[i % 16, i / 16] = b;
+                    if (ids.Contains(b))
+                    {
+                        foundBiomes.Add(Biomes.Get(b));
+                    }
+                }
+
+                list.Add((chunkX, chunkZ, foundBiomes.ToArray()));
+            }
+
+            if (tokens.Any(t => t.Contains('"')))
+            {
+                var values = tokens.First(t => t.Contains('"')).Split('"', StringSplitOptions.RemoveEmptyEntries);
+                if (values.Length == 1)
+                {
+                    list = list
+                        .Where(b => b.Item3.Any(x => x.Name.Contains(values[0], StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
+                }
+            }
+
+            ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
+
+            var sortedBiomes = list
+                .OrderBy(b => PointDistance(b.Item1, b.Item2, centerX, centerZ))
+                .ToList();
+
+            foreach (var bio in sortedBiomes)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"    {bio.Item1} {bio.Item2}");
+                foreach (var item in bio.Item3)
+                {
+                    Console.WriteLine($"    {item.Name}");
+                }
+            }
         }
 
         private static List<Village> FindVillages(World world, string[] tokens)
@@ -724,7 +794,8 @@ namespace PapyrusCs
         private static List<(byte[], Entity)> GetEntities(World world)
         {
             var entityKeys = world.Keys
-                .Where(key => key.Length > 8 && key[8] == (int)KeyType.Entity)
+                .Where(key => (key.Length == 9 && key[8] == (int)KeyType.Entity) ||
+                              (key.Length == 13 && key[12] == (int)KeyType.Entity))
                 .ToList();
 
             var entities = new List<(byte[], Entity)>();
@@ -766,7 +837,8 @@ namespace PapyrusCs
         private static List<(byte[], BlockEntity)> GetBlockEntities(World world)
         {
             var entityKeys = world.Keys
-                .Where(key => key.Length > 8 && key[8] == (int)KeyType.BlockEntity)
+                .Where(key => (key.Length == 9 && key[8] == (int)KeyType.BlockEntity) ||
+                              (key.Length == 13 && key[12] == (int)KeyType.BlockEntity))
                 .ToList();
 
             var entities = new List<(byte[], BlockEntity)>();
