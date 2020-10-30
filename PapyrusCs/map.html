@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet"
-          href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          rel="stylesheet"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
           crossorigin="anonymous" />
-    <link rel="stylesheet"
-          href="https://openlayers.org/en/v6.1.1/css/ol.css" />
+
+    <link href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.4.3/css/ol.css"
+          rel="stylesheet">
+
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap"
           rel="stylesheet" />
 
@@ -41,7 +43,7 @@
 </head>
 
 <body margin="0" padding="0">
-    <script src="https://openlayers.org/en/v6.1.1/build/ol.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.4.3/build/ol.js"></script>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
             integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
             crossorigin="anonymous"></script>
@@ -62,23 +64,18 @@
         var layers = {
             dim0: {
                 name: "Overworld",
-                attribution:
-                    '<a href="https://github.com/mjungnickel18/papyruscs">PapyrusCS</a>',
-                minNativeZoom: 15,
-                minZoom: 15,
+                attribution: '',
+                minNativeZoom: 10,
                 maxNativeZoom: 20,
-                maxZoom: 22,
                 noWrap: true,
                 tileSize: 512,
                 folder: "dim0",
                 fileExtension: "png"
             }
         };
+        var config = { "factor": 65536.0, "globalMinZoom": 10, "globalMaxZoom": 20, "tileSize": 256, "blocksPerTile": 16 };
 
-        var config = {
-            factor: 1
-        };
-
+        // The values above will be injected and replaced.
         // # INJECT DATA HERE
 
         // ======
@@ -125,6 +122,9 @@
         const zoomRatioForMaximumZoom = 1 / Math.pow(2, config.globalMaxZoom - config.globalMinZoom);
         const minecraftTilesAtMostZoomedInLevel = config.blocksPerTile;
 
+        const centerX = 1536;
+        const centerZ = 0;
+
         // Use a projection where pixels have a 1:1 ratio with the screen at zoom level 0.
         const projection = new ol.proj.Projection({
             code: "ZOOMIFY",
@@ -139,7 +139,7 @@
 
         // Construct the tile grid using the desired maximum and minimum extents listed above,
         // set the origin to [0, 0] (the center of the map), and the calculated resolutions array.
-        const tilegrid = new ol.tilegrid.TileGrid({
+        const tileGrid = new ol.tilegrid.TileGrid({
             extent: [
                 minimumExtentSize,
                 minimumExtentSize,
@@ -151,8 +151,12 @@
             tileSize: [tileSize, tileSize]
         });
 
+        // * Html Elements *
+
         let map;
         let locationElement;
+
+        // * Tile Layers *
 
         const tileLayers = Object.keys(layers)
             .sort()
@@ -164,21 +168,10 @@
                             const z = tileCoord[0];
                             const x = tileCoord[1];
                             const y = tileCoord[2];
-                            return (
-                                "./" +
-                                layer.folder +
-                                "/" +
-                                z +
-                                "/" +
-                                x +
-                                "/" +
-                                y +
-                                "." +
-                                layer.fileExtension
-                            );
+                            return ("./" + layer.folder + "/" + z + "/" + x + "/" + y + "." + layer.fileExtension);
                         },
                         projection: projection,
-                        tileGrid: tilegrid,
+                        tileGrid: tileGrid,
                         attributions: layer.attribution
                     }),
                     visible: idx == 0
@@ -187,22 +180,75 @@
                 return tileLayer;
             });
 
-        const initialLayer = layers[Object.keys(layers).sort()[0]];
-        let currentSelectedLayer = Object.keys(layers).sort()[0];
+        let currentSelectedLayerKey = Object.keys(layers).sort()[0];
+        const initialLayer = layers[currentSelectedLayerKey];
 
-        if (Object.keys(layers).sort()[0] == "dim0_stronghold") {
-            document.getElementById("map").style.background = "#fff";
-        } else {
-            document.getElementById("map").style.background = "#202020";
+        function onSelectedLayerChanged(layerKey) {
+            if (layerKey == "dim0_stronghold") {
+                document.getElementById("map").style.background = "#fff";
+            } else {
+                document.getElementById("map").style.background = "#202020";
+            }
+
+            if (currentSelectedLayerKey != layerKey) {
+                const runtimeLayers = map.getLayers();
+                runtimeLayers.forEach(function(runtimeLayer) {
+                    var visible = runtimeLayer.metaLayerKey == layerKey ||
+                        runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_players" ||
+                        runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_poi"
+                    runtimeLayer.setVisible(visible);
+                });
+
+                const oldFocusGroup = currentSelectedLayerKey.substr(0, 4);
+                const newFocusGroup = layerKey.substr(0, 4);
+
+                rememberedCenters[oldFocusGroup] = view.getCenter();
+                if (rememberedCenters[newFocusGroup] === undefined) {
+                    // refocus the map to 0, 0
+                    view.setCenter([0, 0]);
+                } else {
+                    // set back to where we were
+                    view.setCenter(rememberedCenters[newFocusGroup]);
+                }
+
+                rememberedZoom[oldFocusGroup] = view.getZoom();
+                view.setMinZoom(layer.minNativeZoom - config.globalMinZoom);
+                view.setMaxZoom(layer.maxNativeZoom - config.globalMinZoom);
+                if (rememberedZoom[newFocusGroup] === undefined) {
+                    // rezoom the map to minimum zoom
+                    view.setZoom(layer.minNativeZoom - config.globalMinZoom);
+                } else {
+                    // set back to where we were
+                    view.setZoom(rememberedZoom[newFocusGroup]);
+                }
+
+                const radios = $("input[name='layers']");
+                radios.each(function(idx, elem) {
+                    if (elem.value == layerKey) {
+                        elem.checked = true;
+                    } else {
+                        elem.checked = false;
+                    }
+                });
+
+                currentSelectedLayerKey = layerKey;
+            }
         }
+
+        // * View *
 
         const view = new ol.View({
             projection: projection,
-            center: [0, 0],
-            zoom: 0,
+            center: [
+                (centerX * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
+                (centerZ * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
+            ],
+            zoom: config.globalMaxZoom / 2.5,
             minZoom: 0,
             maxZoom: config.globalMaxZoom - config.globalMinZoom
         });
+
+        // * Controls *
 
         const PapyrusControls = (function(Control) {
             function PapyrusControls(opt_options) {
@@ -248,58 +294,7 @@
                         radioLabel.innerText = layer.name;
                         radioContainer.appendChild(radioLabel);
 
-                        const selectLayer = function(e) {
-                            if (layerKey == "dim0_stronghold") {
-                                document.getElementById("map").style.background = "#fff";
-                            } else {
-                                document.getElementById("map").style.background = "#202020";
-                            }
-
-                            if (currentSelectedLayer != layerKey) {
-                                const runtimeLayers = map.getLayers();
-                                runtimeLayers.forEach(function(runtimeLayer) {
-                                    var visible = runtimeLayer.metaLayerKey == layerKey ||
-                                        runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_players" ||
-                                        runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_poi"
-                                    runtimeLayer.setVisible(visible);
-                                });
-
-                                const oldFocusGroup = currentSelectedLayer.substr(0, 4);
-                                const newFocusGroup = layerKey.substr(0, 4);
-
-                                rememberedCenters[oldFocusGroup] = view.getCenter();
-                                if (rememberedCenters[newFocusGroup] === undefined) {
-                                    // refocus the map to 0, 0
-                                    view.setCenter([0, 0]);
-                                } else {
-                                    // set back to where we were
-                                    view.setCenter(rememberedCenters[newFocusGroup]);
-                                }
-
-                                rememberedZoom[oldFocusGroup] = view.getZoom();
-                                view.setMinZoom(layer.minNativeZoom - config.globalMinZoom);
-                                view.setMaxZoom(layer.maxNativeZoom - config.globalMinZoom);
-                                if (rememberedZoom[newFocusGroup] === undefined) {
-                                    // rezoom the map to minimum zoom
-                                    view.setZoom(layer.minNativeZoom - config.globalMinZoom);
-                                } else {
-                                    // set back to where we were
-                                    view.setZoom(rememberedZoom[newFocusGroup]);
-                                }
-
-                                const radios = $("input[name='layers']");
-                                radios.each(function(idx, elem) {
-                                    if (elem.value == layerKey) {
-                                        elem.checked = true;
-                                    } else {
-                                        elem.checked = false;
-                                    }
-                                });
-
-                                currentSelectedLayer = layerKey;
-                            }
-                        };
-
+                        const selectLayer = function(e) { onSelectedLayerChanged(layerKey); };
                         radioInput.addEventListener(
                             "click",
                             selectLayer.bind(this),
@@ -329,13 +324,14 @@
             return PapyrusControls;
         })(ol.control.Control);
 
+        // * Map *
+
         map = new ol.Map({
             target: "map",
             layers: tileLayers,
             view: view,
             controls: [
                 new ol.control.Zoom(),
-                new ol.control.Attribution(),
                 new PapyrusControls()
             ]
         });
@@ -350,113 +346,121 @@
                 minecraftTilesAtMostZoomedInLevel
             );
 
-            locationElement.innerText = "X: " + x + " Z: " + z;
+            var cX = Math.floor(x / 16);
+            var cZ = Math.floor(z / 16);
+            locationElement.innerText = "X: " + x + " Z: " + z + "\n" + "Chunk " + cX + ", " + cZ;
         });
 
         // * Players *
+        function createPayersLayer() {
+            if (typeof (playersData) !== "undefined") {
+                var playerFeatures = [[], [], []];
 
-        if (typeof (playersData) !== "undefined") {
-            var playerFeatures = [[], [], []];
+                for (var playerIndex in playersData.players) {
+                    var player = playersData.players[playerIndex];
 
-            for (var playerIndex in playersData.players) {
-                var player = playersData.players[playerIndex];
+                    if (!player.visible) {
+                        continue;
+                    }
 
-                if (!player.visible) {
-                    continue;
+                    var style = new ol.style.Style({
+                        text: new ol.style.Text({
+                            text: "\uf183",
+                            font: "900 18px 'Font Awesome 5 Free'",
+                            textBaseline: "bottom",
+                            fill: new ol.style.Fill({ color: player.color }),
+                            stroke: new ol.style.Stroke({ color: "white", width: 2 })
+                        })
+                    });
+
+                    var playerFeature = new ol.Feature({
+                        geometry: new ol.geom.Point([
+                            (player.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
+                            (-player.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
+                        ])
+                    });
+
+                    playerFeature.setStyle(style);
+
+                    playerFeatures[player.dimensionId].push(playerFeature);
                 }
 
-                var style = new ol.style.Style({
-                    text: new ol.style.Text({
-                        text: "\uf183",
-                        font: "900 18px 'Font Awesome 5 Free'",
-                        textBaseline: "bottom",
-                        fill: new ol.style.Fill({ color: player.color }),
-                        stroke: new ol.style.Stroke({ color: "white", width: 2 })
-                    })
-                });
+                for (var dimensionId = 0; dimensionId < 3; dimensionId++) {
+                    var vectorSource = new ol.source.Vector({ features: playerFeatures[dimensionId] });
+                    var vectorLayer = new ol.layer.Vector({ source: vectorSource });
+                    vectorLayer.metaLayerKey = "dim" + dimensionId + "_players";
 
-                var playerFeature = new ol.Feature({
-                    geometry: new ol.geom.Point([
-                        (player.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
-                        (-player.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
-                    ])
-                });
+                    var visible = vectorLayer.metaLayerKey == currentSelectedLayerKey.substr(0, 4) + "_players"
+                    vectorLayer.setVisible(visible);
 
-                playerFeature.setStyle(style);
-
-                playerFeatures[player.dimensionId].push(playerFeature);
-            }
-
-            for (var dimensionId = 0; dimensionId < 3; dimensionId++) {
-                var vectorSource = new ol.source.Vector({ features: playerFeatures[dimensionId] });
-                var vectorLayer = new ol.layer.Vector({ source: vectorSource });
-                vectorLayer.metaLayerKey = "dim" + dimensionId + "_players";
-
-                var visible = vectorLayer.metaLayerKey == currentSelectedLayer.substr(0, 4) + "_players"
-                vectorLayer.setVisible(visible);
-
-                map.addLayer(vectorLayer);
+                    map.addLayer(vectorLayer);
+                }
             }
         }
 
         // * Points of Interest *
+        function createPOILayer() {
+            var poiList = [];
 
-        var poiList = [];
+            if (typeof (poiData) !== "undefined") {
+                poiList = poiList.concat(poiData.points);
+            }
 
-        if (typeof (poiData) !== "undefined") {
-            poiList = poiList.concat(poiData.points);
-        }
+            if (typeof (villageData) !== "undefined") {
+                poiList = poiList.concat(villageData.villages);
+            }
 
-        if (typeof (villageData) !== "undefined") {
-            poiList = poiList.concat(poiData.villages);
-        }
+            if (typeof (portalData) !== "undefined") {
+                poiList = poiList.concat(portalData.portals);
+            }
 
-        if (typeof (portalData) !== "undefined") {
-            poiList = poiList.concat(poiData.portals);
-        }
+            if (poiList.length > 0) {
+                var poiFeatures = [[], [], []];
 
-        if (poiList.length > 0) {
-            var poiFeatures = [[], [], []];
+                for (var poiIndex in poiList) {
+                    var poi = poiList[poiIndex];
 
-            for (var poiIndex in poiList) {
-                var poi = poiList[poiIndex];
+                    if (!poi.visible) {
+                        continue;
+                    }
 
-                if (!poi.visible) {
-                    continue;
+                    var style = new ol.style.Style({
+                        text: new ol.style.Text({
+                            text: poi.icon + "\n" + poi.name,
+                            font: "900 18px 'Font Awesome 5 Free'",
+                            textBaseline: "bottom",
+                            fill: new ol.style.Fill({ color: poi.color }),
+                            stroke: new ol.style.Stroke({ color: "white", width: 2 })
+                        })
+                    });
+
+                    var poiFeature = new ol.Feature({
+                        geometry: new ol.geom.Point([
+                            (poi.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
+                            (-poi.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
+                        ])
+                    });
+
+                    poiFeature.setStyle(style);
+                    poiFeatures[poi.dimensionId].push(poiFeature);
                 }
 
-                var style = new ol.style.Style({
-                    text: new ol.style.Text({
-                        text: poi.icon + "\n" + poi.name,
-                        font: "900 18px 'Font Awesome 5 Free'",
-                        textBaseline: "bottom",
-                        fill: new ol.style.Fill({ color: poi.color }),
-                        stroke: new ol.style.Stroke({ color: "white", width: 2 })
-                    })
-                });
+                for (var dimensionId = 0; dimensionId < 3; dimensionId++) {
+                    var vectorSource = new ol.source.Vector({ features: poiFeatures[dimensionId] });
+                    var vectorLayer = new ol.layer.Vector({ source: vectorSource });
+                    vectorLayer.metaLayerKey = "dim" + dimensionId + "_poi";
 
-                var poiFeature = new ol.Feature({
-                    geometry: new ol.geom.Point([
-                        (poi.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
-                        (-poi.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
-                    ])
-                });
+                    var visible = vectorLayer.metaLayerKey == currentSelectedLayerKey.substr(0, 4) + "_poi"
+                    vectorLayer.setVisible(visible);
 
-                poiFeature.setStyle(style);
-                poiFeatures[poi.dimensionId].push(poiFeature);
-            }
-
-            for (var dimensionId = 0; dimensionId < 3; dimensionId++) {
-                var vectorSource = new ol.source.Vector({ features: poiFeatures[dimensionId] });
-                var vectorLayer = new ol.layer.Vector({ source: vectorSource });
-                vectorLayer.metaLayerKey = "dim" + dimensionId + "_poi";
-
-                var visible = vectorLayer.metaLayerKey == currentSelectedLayer.substr(0, 4) + "_poi"
-                vectorLayer.setVisible(visible);
-
-                map.addLayer(vectorLayer);
+                    map.addLayer(vectorLayer);
+                }
             }
         }
+
+        createPayersLayer();
+        createPOILayer();
+        onSelectedLayerChanged(currentSelectedLayerKey);
 
     </script>
 </body>
