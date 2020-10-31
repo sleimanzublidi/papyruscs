@@ -184,7 +184,7 @@ namespace PapyrusCs
                 int tileSize = chunkSize * chunksPerDimension;
                 Console.WriteLine($"Tilesize is {tileSize}x{tileSize}");
 
-                if (String.IsNullOrEmpty(options.OutputPath))
+                if (string.IsNullOrEmpty(options.OutputPath))
                 {
                     options.OutputPath = Path.Combine("generatedmaps", world.WorldName);
                     Console.WriteLine($"Output folder not specified, defaulting to {options.OutputPath}");

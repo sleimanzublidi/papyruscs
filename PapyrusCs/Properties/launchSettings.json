@@ -1,6 +1,11 @@
 {
   "profiles": {
-    "PapyrusCs": {
+    "MAP": {
+      "commandName": "Project",
+      "commandLineArgs": "map -w \"E:\\Minecraft\\Quests\" --output \"E:\\Minecraft\\MAP\" --dim 0 --chunksperdimension 1",
+      "workingDirectory": "E:\\Minecraft\\DebugMap\\Temp"
+    },
+    "REPL": {
       "commandName": "Project",
       "commandLineArgs": "repl -w \"E:\\Minecraft\\Quests\"",
       "workingDirectory": "E:\\Minecraft\\DebugMap\\Temp"

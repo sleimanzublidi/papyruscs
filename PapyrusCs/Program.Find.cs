@@ -60,14 +60,14 @@ namespace PapyrusCs
             Console.WriteLine("  what: village, portal, map, player, entity, blockentity");
         }
 
-        private static void FindBiomes(World world, string[] tokens)
+        private static List<BiomeData> FindBiomes(World world, string[] tokens)
         {
             var biomeKeys = world.Keys
                 .Where(key => (key.Length == 9 && key[8] == (int)KeyType.Data2D) ||
                               (key.Length == 13 && key[12] == (int)KeyType.Data2D))
                 .ToList();
 
-            var list = new List<(int, int, Biome[])>();
+            var list = new List<BiomeData>();
             var ids = Biomes.All.Select(b => b.Id).ToArray();
 
             foreach (var key in biomeKeys)
@@ -77,25 +77,27 @@ namespace PapyrusCs
 
                 var data = world.GetData(key);
 
-                var elevations = new short[16, 16];
-                var biomes = new byte[16, 16];
-
-                var foundBiomes = new HashSet<Biome>();
+                var biomeData = new BiomeData
+                {
+                    X = chunkX,
+                    Z = chunkZ,
+                    Elevations = new short[16, 16],
+                    Biomes = new Biome[16, 16],
+                    UniqueBiomes = new HashSet<Biome>()
+                };
 
                 for (int i = 0; i < 256; i++)
                 {
                     var height = BitConverter.ToInt16(data, i * 2);
-                    elevations[i % 16, i / 16] = height;
+                    biomeData.Elevations[i % 16, i / 16] = height;
                     // the biomes are stored after the elevations;
                     byte b = data[(256 * 2) + i];
-                    biomes[i % 16, i / 16] = b;
-                    if (ids.Contains(b))
-                    {
-                        foundBiomes.Add(Biomes.Get(b));
-                    }
+                    var biome = Biomes.Get(b);
+                    biomeData.Biomes[i % 16, i / 16] = biome;
+                    biomeData.UniqueBiomes.Add(biome);
                 }
 
-                list.Add((chunkX, chunkZ, foundBiomes.ToArray()));
+                list.Add(biomeData);
             }
 
             if (tokens.Any(t => t.Contains('"')))
@@ -104,7 +106,7 @@ namespace PapyrusCs
                 if (values.Length == 1)
                 {
                     list = list
-                        .Where(b => b.Item3.Any(x => x.Name.Contains(values[0], StringComparison.OrdinalIgnoreCase)))
+                        .Where(b => b.UniqueBiomes.Any(x => x.Name.Contains(values[0], StringComparison.OrdinalIgnoreCase)))
                         .ToList();
                 }
             }
@@ -112,18 +114,20 @@ namespace PapyrusCs
             ParseCenterPoint(tokens, out var center, out var centerX, out var centerZ);
 
             var sortedBiomes = list
-                .OrderBy(b => PointDistance(b.Item1, b.Item2, centerX, centerZ))
+                .OrderBy(b => PointDistance(b.X, b.Z, centerX, centerZ))
                 .ToList();
 
             foreach (var bio in sortedBiomes)
             {
-                Console.WriteLine();
-                Console.WriteLine($"    {bio.Item1} {bio.Item2}");
-                foreach (var item in bio.Item3)
-                {
-                    Console.WriteLine($"    {item.Name}");
-                }
+                //Console.WriteLine();
+                //Console.WriteLine($"    {bio.Item1} {bio.Item2}");
+                //foreach (var item in bio.Item3)
+                //{
+                //    Console.WriteLine($"    {item.Name}");
+                //}
             }
+
+            return list;
         }
 
         private static List<Village> FindVillages(World world, string[] tokens)

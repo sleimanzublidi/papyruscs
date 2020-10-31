@@ -23,7 +23,7 @@ namespace Maploader.Renderer
             this.graphics = graphics;
             this.renderSettings = settings ?? new RenderSettings();
 
-            b = new Brillouin(renderSettings.BrillouinJ, renderSettings.BrillouinDivider);
+            this.b = new Brillouin(this.renderSettings.BrillouinJ, this.renderSettings.BrillouinDivider);
         }
 
         public List<string> MissingTextures { get; } = new List<string>();
@@ -36,9 +36,9 @@ namespace Maploader.Renderer
         {
             var xzColumns = c.Blocks.GroupBy(x => x.Value.XZ);
             var blocksOrderedByXZ = xzColumns.OrderBy(x => x.Key.GetLeByte(0)).ThenBy(x => x.Key.GetLeByte(1));
-            var brightnessOffset = Math.Min(renderSettings.BrillouinOffset, renderSettings.YMax);
+            var brightnessOffset = Math.Min(this.renderSettings.BrillouinOffset, this.renderSettings.YMax);
             if (brightnessOffset < 0)
-                brightnessOffset = renderSettings.BrillouinOffset;
+                brightnessOffset = this.renderSettings.BrillouinOffset;
 
 
             foreach (var blocks in blocksOrderedByXZ)
@@ -46,10 +46,10 @@ namespace Maploader.Renderer
                 var blocksToRender = new Stack<BlockCoord>();
 
                 List<KeyValuePair<uint, BlockCoord>> blocksFromSkyToBedrock = blocks.Where(x => x.Value.Block.Id != "minecraft:air").OrderByDescending(x => x.Value.Y).ToList();
-                if (renderSettings.YMax > 0)
-                    blocksFromSkyToBedrock = blocksFromSkyToBedrock.Where(x => x.Value.Y <= renderSettings.YMax).ToList();
+                if (this.renderSettings.YMax > 0)
+                    blocksFromSkyToBedrock = blocksFromSkyToBedrock.Where(x => x.Value.Y <= this.renderSettings.YMax).ToList();
 
-                if (renderSettings.TrimCeiling)
+                if (this.renderSettings.TrimCeiling)
                 {
                     int start = -1;
                     for (int i = 1; i < blocksFromSkyToBedrock.Count(); i++)
@@ -68,7 +68,7 @@ namespace Maploader.Renderer
 
                 }
 
-                switch (renderSettings.Profile)
+                switch (this.renderSettings.Profile)
                 {
                     case "underground":
                         {
@@ -87,7 +87,7 @@ namespace Maploader.Renderer
                                     switch (state)
                                     {
                                         case "goingthroughtoplevelsky":
-                                            if (textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
+                                            if (this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
                                             {
                                                 continue;
                                             }
@@ -102,7 +102,7 @@ namespace Maploader.Renderer
                                         case "goingthroughground":
                                             lastYValue = block.Y;
 
-                                            if (textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
+                                            if (this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
                                             {
                                                 isRendering = true;
                                             }
@@ -114,11 +114,11 @@ namespace Maploader.Renderer
                                             break;
                                     }
                                 }
-                                
+
                                 if (isRendering)
                                 {
                                     blocksToRender.Push(block);
-                                    if (!textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
+                                    if (!this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
                                     {
                                         break;
                                     }
@@ -143,7 +143,7 @@ namespace Maploader.Renderer
                                 if (!isWater)
                                 {
                                     // stop if we hit a solid block first
-                                    if (!textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
+                                    if (!this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
                                     {
                                         break;
                                     }
@@ -152,7 +152,7 @@ namespace Maploader.Renderer
                                 }
 
                                 blocksToRender.Push(block);
-                                if (!textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
+                                if (!this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
                                 {
                                     break;
                                 }
@@ -181,7 +181,7 @@ namespace Maploader.Renderer
                                     switch (state)
                                     {
                                         case "goingthroughtoplevelsky":
-                                            if (textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
+                                            if (this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
                                             {
                                                 continue;
                                             }
@@ -196,7 +196,7 @@ namespace Maploader.Renderer
                                         case "goingthroughground":
                                             lastYValue = block.Y;
 
-                                            if (textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
+                                            if (this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id) || block.Block.Id.Contains("water") || block.Block.Id.Contains("kelp"))
                                             {
                                                 isRendering = true;
                                             }
@@ -224,7 +224,7 @@ namespace Maploader.Renderer
                                         block.Block.Id.Contains("door"))
                                     {
                                         blocksToRender.Push(block);
-                                        if (!textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
+                                        if (!this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
                                         {
                                             break;
                                         }
@@ -240,7 +240,7 @@ namespace Maploader.Renderer
                                 var block = blockColumn.Value;
 
                                 blocksToRender.Push(block);
-                                if (!textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
+                                if (!this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
                                 {
                                     break;
                                 }
@@ -251,48 +251,48 @@ namespace Maploader.Renderer
 
                 foreach (var block in blocksToRender)
                 {
-                    if(SkipSpecialBlockRender(block.Block))
+                    if (SkipSpecialBlockRender(block.Block))
                     {
                         continue;
                     }
                     var textures =
-                        textureFinder.FindTexturePath(block.Block.Id, block.Block.Data, block.X, block.Z, block.Y);
+                        this.textureFinder.FindTexturePath(block.Block.Id, block.Block.Data, block.X, block.Z, block.Y);
                     if (textures == null)
                     {
                         Console.WriteLine($"\nMissing Texture(2): {block.ToString().PadRight(30)}");
-                        MissingTextures.Add($"ID: {block.Block.Id}");
+                        this.MissingTextures.Add($"ID: {block.Block.Id}");
                         continue;
                     }
 
                     foreach (var texture in textures.Infos)
                     {
-                        var bitmapTile = textureFinder.GetTextureImage(texture);
+                        var bitmapTile = this.textureFinder.GetTextureImage(texture);
                         if (bitmapTile != null)
                         {
                             var x = xOffset + block.X * 16;
                             var z = zOffset + block.Z * 16;
 
-                            if (renderSettings.RenderMode == RenderMode.Heightmap)
+                            if (this.renderSettings.RenderMode == RenderMode.Heightmap)
                             {
-                                graphics.DrawImageWithBrightness(dest, bitmapTile, x, z, b.GetBrightness(block.Y - brightnessOffset));
+                                this.graphics.DrawImageWithBrightness(dest, bitmapTile, x, z, this.b.GetBrightness(block.Y - brightnessOffset));
                             }
                             else
                             {
-                                graphics.DrawImageWithBrightness(dest, bitmapTile, x, z, 1);
+                                this.graphics.DrawImageWithBrightness(dest, bitmapTile, x, z, 1);
                             }
                         }
                         else
                         {
                             Console.WriteLine($"\nMissing Texture(1): {block.ToString().PadRight(30)} -- {texture.Filename}");
-                            MissingTextures.Add($"ID: {block.Block.Id}, {texture.Filename}");
+                            this.MissingTextures.Add($"ID: {block.Block.Id}, {texture.Filename}");
                         }
                     }
                 }
             }
 
-            if (renderSettings.RenderCoordinateStrings)
+            if (this.renderSettings.RenderCoordinateStrings)
             {
-                graphics.DrawString(dest, $"{c.X * 1}, {c.Z * 1}", new Font(FontFamily.GenericSansSerif, 10), Brushes.Black, xOffset, zOffset);
+                this.graphics.DrawString(dest, $"{c.X * 1}, {c.Z * 1}", new Font(FontFamily.GenericSansSerif, 10), Brushes.Black, xOffset, zOffset);
             }
         }
 
@@ -350,7 +350,7 @@ namespace Maploader.Renderer
         {
             "minecraft:light_block"
         };
-        private static bool SkipSpecialBlockRender (BlockData block)
+        private static bool SkipSpecialBlockRender(BlockData block)
         {
             return SpecialBlockList.Contains(block.Id);
         }

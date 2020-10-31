@@ -1,12 +1,32 @@
-﻿using System.Linq;
+﻿using System.Diagnostics;
+using System.Linq;
 
 namespace PapyrusCs
 {
+    [DebuggerDisplay("{Name} {Id}")]
+    public struct Biome
+    {
+        public Biome(string name, byte id, int[] rgb)
+        {
+            this.Name = name;
+            this.Id = id;
+            this.RGB = rgb;
+        }
+
+        public string Name;
+        public byte Id;
+        public int[] RGB;
+    }
+
     public static class Biomes
     {
         public static Biome Get(int id)
         {
-            return All.FirstOrDefault(b => b.Id == id);
+            if (All.Any(b => b.Id == id))
+            {
+                return All.First(b => b.Id == id);
+            }
+            return All.Last();
         }
 
         public static Biome[] All = {
