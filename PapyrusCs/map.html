@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
@@ -38,6 +38,53 @@
             right: 0.5em;
             width: 150px;
         }
+
+        .ol-popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid #cccccc;
+            bottom: 12px;
+            left: -50px;
+            min-width: 148px;
+        }
+
+            .ol-popup:after, .ol-popup:before {
+                top: 100%;
+                border: solid transparent;
+                content: " ";
+                height: 0;
+                width: 0;
+                position: absolute;
+                pointer-events: none;
+            }
+
+            .ol-popup:after {
+                border-top-color: white;
+                border-width: 10px;
+                left: 48px;
+                margin-left: -10px;
+            }
+
+            .ol-popup:before {
+                border-top-color: #cccccc;
+                border-width: 11px;
+                left: 48px;
+                margin-left: -11px;
+            }
+
+        .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 2px;
+            right: 8px;
+        }
+
+            .ol-popup-closer:after {
+                content: "✖";
+            }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
@@ -60,6 +107,12 @@
     <script src="villageData.js"></script>
 
     <div id="map"></div>
+
+    <div id="popup" class="ol-popup">
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content"></div>
+    </div>
+
     <script>
         var layers = {
             dim0: {
@@ -137,13 +190,11 @@
             ]
         });
 
-        function toBlockCoordidate(c)
-        {
+        function toBlockCoordidate(c) {
             return Math.floor((c / zoomRatioForMaximumZoom) * minecraftTilesAtMostZoomedInLevel);
         }
 
-        function toMapCoordidate(c)
-        {
+        function toMapCoordidate(c) {
             return (c * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel;
         }
 
@@ -249,7 +300,7 @@
 
         const view = new ol.View({
             projection: projection,
-            center: [ toMapCoordidate(centerX), toMapCoordidate(centerZ) ],
+            center: [toMapCoordidate(centerX), toMapCoordidate(centerZ)],
             zoom: config.globalMaxZoom / 2.5,
             minZoom: 0,
             maxZoom: config.globalMaxZoom - config.globalMinZoom
@@ -331,11 +382,31 @@
             return PapyrusControls;
         })(ol.control.Control);
 
+        // * Overlay Popup *
+        var popup = document.getElementById('popup');
+        var popupContent = document.getElementById('popup-content');
+        var popupCloser = document.getElementById('popup-closer');
+
+        var popupOverlay = new ol.Overlay({
+            element: popup,
+            autoPan: true,
+            autoPanAnimation: {
+                duration: 250,
+            },
+        });
+
+        popupCloser.onclick = function() {
+            popupOverlay.setPosition(undefined);
+            popupCloser.blur();
+            return false;
+        };
+
         // * Map *
 
         map = new ol.Map({
             target: "map",
             layers: tileLayers,
+            overlays: [popupOverlay],
             view: view,
             controls: [
                 new ol.control.Zoom(),
@@ -349,10 +420,10 @@
             var cX = Math.floor(x / 16);
             var cZ = Math.floor(z / 16);
 
-            locationElement.innerText = "X: " + x + " Z: " + z + "\n" + "Chunk " + cX + ", " + cZ;
+            locationElement.innerHTML = `${x}, ${z} <br/><small>${cX}, ${cZ}</small>`;
         });
 
-        map.on("singleclick", function(event){
+        map.on("singleclick", function(event) {
             var zoom = map.getView().getZoom();
             var coordinate = event.coordinate;
 
@@ -360,6 +431,9 @@
             var z = toBlockCoordidate(-event.coordinate[1]);
             var cX = Math.floor(x / 16);
             var cZ = Math.floor(z / 16);
+
+            popupContent.innerHTML = `${x}, ${z} <br/><small>${cX}, ${cZ}</small>`;
+            popupOverlay.setPosition(coordinate);
         });
 
         // * Players *
