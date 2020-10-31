@@ -191,10 +191,7 @@ namespace Maploader.Renderer.Texture
                 return GetTexture(name, data);
             }
             return null;
-
         }
-
-
 
         private TextureStack GetSubstitution(string name, Dictionary<string, Object> data, int x, int z, int y)
         {
@@ -278,6 +275,10 @@ namespace Maploader.Renderer.Texture
                     return GetTexture("birch_planks", data);
                 case "acacia_stairs":
                     return GetTexture("acacia_planks", data);
+                case "warped_stairs":
+                    return GetTexture("warped_planks", data);
+                case "warped_pressure_plate":
+                    return GetTexture("warped_planks", data);
                 case "dark_oak_stairs":
                     return GetTexture("dark_oak_planks", data);
                 case "nether_brick_stairs":
@@ -306,13 +307,13 @@ namespace Maploader.Renderer.Texture
                 case "smooth_red_sandstone_stairs":
                     return GetTexture("smooth_red_sandstone");
                 case "purpur_stairs":
-                    return GetTexture("purpur_block_top");   
+                    return GetTexture("purpur_block_top");
                 case "red_nether_brick_stairs":
-                    return GetTexture("red_nether_brick");   
+                    return GetTexture("red_nether_brick");
                 case "end_brick_stairs":
-                    return GetTexture("end_bricks", data);   
+                    return GetTexture("end_bricks", data);
                 case "smooth_quartz_stairs":
-                    return GetTexture("stair_quartz_block_top", data);   
+                    return GetTexture("stair_quartz_block_top", data);
 
                 case "cauldron":
                     return GetTexture("cauldron_inner", data)
@@ -618,7 +619,7 @@ namespace Maploader.Renderer.Texture
                 case "kelp":
                     return GetTexture("kelp_top", data);
                 case "dried_kelp_block":
-                    return GetTexture("dried_kelp_block_top", data);                
+                    return GetTexture("dried_kelp_block_top", data);
                 case "stained_hardened_clay":
                     return GetTexture("stained_clay", data);
 
@@ -865,7 +866,7 @@ namespace Maploader.Renderer.Texture
                     int legacyData = LegacyGetOldDataValue(data);
                     return GetTexture((legacyData & 8) == 0 ? "log_top2" : "log_side2", legacyData & 3);
                 }
-              
+
                 case "coral_fan_hang":
                     return GetTexture("coral_fan_hang_a", data);
                 case "coral_fan_hang2":
@@ -1047,14 +1048,14 @@ namespace Maploader.Renderer.Texture
             }
             switch (legacyData)
             {
-                
+
                 case 1:
                     return t.Translate(
                         new Rect(6, 6, 4, 4),
                         new Rect(6, 6, 4, 4));
                 case 2:
                     return t.Rotate(RotateFlip.Rotate180FlipNone);
-              
+
                 case 3:
                     return t.Rotate(RotateFlip.RotateNoneFlipNone);
                 case 4:
@@ -1121,7 +1122,7 @@ namespace Maploader.Renderer.Texture
                                 new Rect(0, 6, 10, 4),
                                 new Rect(6, 12, 10, 4))
                                 .Rotate(RotateFlip.Rotate180FlipNone);
-                        
+
                 case 7:
                     return GetTexture(texture, 0).Translate(
                                new Rect(0, 6, 10, 4),
@@ -1292,7 +1293,7 @@ namespace Maploader.Renderer.Texture
                 {
                     graphics.RotateFlip(b, info.Rotation);
                 }
-                
+
                 if (!Cache.ContainsKey(info))
                 {
                     Cache.Add(info, b);

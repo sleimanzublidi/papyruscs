@@ -232,6 +232,11 @@ namespace PapyrusCs
                 strat.Finish();
 
                 Console.WriteLine("Total Time {0}", _time.Elapsed);
+
+                if (Debugger.IsAttached)
+                {
+                    Console.ReadKey();
+                }
             }
 
 
