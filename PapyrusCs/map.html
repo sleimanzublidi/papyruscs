@@ -18,18 +18,14 @@
           crossorigin="anonymous" />
 
     <style>
-        #map {
-            background: #202020;
-            font-size: 16px;
-            font-family: "Roboto", sans-serif;
-        }
-
-        body,
         html,
+        body,
         #map {
             margin: 0px;
+            border: 0px;
+            padding: 0px;
             width: 100%;
-            height: 100%;
+            height: 97.5%;
         }
 
         .layer-select {
@@ -37,6 +33,28 @@
             top: 0.5em;
             right: 0.5em;
             width: 150px;
+        }
+
+        .ol-mouse-position {
+            background-color: #ffffff;
+            border: 1px solid gray;
+            border-radius: 5px;
+            padding: 0.25em 0.5em;
+        }
+
+        #map {
+            background: #202020;
+            font-size: 16px;
+            font-family: "Roboto", sans-serif;
+        }
+
+        /* note: attempt at fixing blurry zoom */
+        #map, img, canvas {
+            image-rendering: -moz-crisp-edges; /* Firefox */
+            image-rendering: -o-crisp-edges; /* Opera */
+            image-rendering: -webkit-optimize-contrast; /* Webkit (non-standard naming) */
+            image-rendering: crisp-edges;
+            -ms-interpolation-mode: nearest-neighbor; /* IE (non-standard property) */
         }
 
         .ol-popup {
@@ -106,7 +124,19 @@
     <script src="portalData.js"></script>
     <script src="villageData.js"></script>
 
-    <div id="map"></div>
+    <div id="map" class="map"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="collapse navbar-collapse" id="navbarTogglerDemo02">
+            <div id="locationElement" class="navbar-nav mr-auto mt-2 mt-lg-0 text-light">
+            </div>
+            <form class="form-inline my-2 my-lg-0" onsubmit="return preventSubmit();">
+                <button id="gotoBtn" class="btn btn-outline-light my-2 mr-sm-2" type="submit">Go to</button>
+                <input id="gotoX" class="form-control mr-sm-2" placeholder="X">
+                <input id="gotoZ" class="form-control mr-sm-2" placeholder="Z">
+            </form>
+        </div>
+    </nav>
 
     <div id="popup" class="ol-popup">
         <a href="#" id="popup-closer" class="ol-popup-closer"></a>
@@ -114,6 +144,8 @@
     </div>
 
     <script>
+        function preventSubmit() { return false; }
+
         var layers = {
             dim0: {
                 name: "Overworld",
@@ -121,12 +153,14 @@
                 minNativeZoom: 10,
                 maxNativeZoom: 20,
                 noWrap: true,
-                tileSize: 512,
+                tileSize: 256,
                 folder: "dim0",
                 fileExtension: "png"
             }
         };
         var config = { "factor": 65536.0, "globalMinZoom": 10, "globalMaxZoom": 20, "tileSize": 256, "blocksPerTile": 16 };
+
+        // layers = {"dim0":{"name":"Overworld","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0","fileExtension":"png"},"dim0_underground":{"name":"Underground","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_underground","fileExtension":"png"},"dim0_ore":{"name":"Ores","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_ore","fileExtension":"png"},"dim0_stronghold":{"name":"Strongholds","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_stronghold","fileExtension":"png"},"dim0_aquatic":{"name":"Aquatic","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_aquatic","fileExtension":"png"},"dim1":{"name":"Nether","attribution":"","minNativeZoom":13,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim1","fileExtension":"png"}};
 
         // The values above will be injected and replaced.
         // # INJECT DATA HERE
@@ -187,7 +221,11 @@
                 0,
                 openLayersInternalTileSize / tileSize,
                 openLayersInternalTileSize / tileSize
-            ]
+            ],
+            metersPerUnit: 16,
+            // getPointResolution: function(resolution, coordinate) {
+            //     return resolution;
+            // }
         });
 
         function toBlockCoordidate(c) {
@@ -215,7 +253,13 @@
         // * Html Elements *
 
         let map;
-        let locationElement;
+        let locationElement = document.getElementById("locationElement");
+        let gotoBtn = document.getElementById("gotoBtn");
+        let gotoX = document.getElementById("gotoX");
+        let gotoZ = document.getElementById("gotoZ");
+
+        gotoX.value = centerX;
+        gotoZ.value = centerZ;
 
         // * Tile Layers *
 
@@ -244,6 +288,9 @@
         let currentSelectedLayerKey = Object.keys(layers).sort()[0];
         const initialLayer = layers[currentSelectedLayerKey];
 
+        let rememberedCenters = {};
+        let rememberedZoom = {};
+
         function onSelectedLayerChanged(layerKey) {
             if (layerKey == "dim0_stronghold") {
                 document.getElementById("map").style.background = "#fff";
@@ -253,6 +300,8 @@
 
             if (currentSelectedLayerKey != layerKey) {
                 const runtimeLayers = map.getLayers();
+                let layer = layers[layerKey];
+
                 runtimeLayers.forEach(function(runtimeLayer) {
                     var visible = runtimeLayer.metaLayerKey == layerKey ||
                         runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_players" ||
@@ -267,9 +316,16 @@
                 if (rememberedCenters[newFocusGroup] === undefined) {
                     // refocus the map to 0, 0
                     view.setCenter([0, 0]);
+
+                    gotoX.value = toBlockCoordidate(0);
+                    gotoZ.value = toBlockCoordidate(0);
                 } else {
                     // set back to where we were
-                    view.setCenter(rememberedCenters[newFocusGroup]);
+                    var center = rememberedCenters[newFocusGroup];
+                    view.setCenter(center);
+
+                    gotoX.value = toBlockCoordidate(center[0]);
+                    gotoZ.value = toBlockCoordidate(center[1]);
                 }
 
                 rememberedZoom[oldFocusGroup] = view.getZoom();
@@ -301,12 +357,23 @@
         const view = new ol.View({
             projection: projection,
             center: [toMapCoordidate(centerX), toMapCoordidate(centerZ)],
-            zoom: config.globalMaxZoom / 2.5,
+            zoom: config.globalMaxZoom,
             minZoom: 0,
             maxZoom: config.globalMaxZoom - config.globalMinZoom
         });
 
         // * Controls *
+
+        gotoBtn.addEventListener(
+            "click",
+            function x(e) {
+                var x = toMapCoordidate(gotoX.value);
+                var z = -1 * toMapCoordidate(gotoZ.value);
+                view.setCenter([x, z]);
+                //view.setZoom(10);
+            },
+            false
+        );
 
         const PapyrusControls = (function(Control) {
             function PapyrusControls(opt_options) {
@@ -325,9 +392,6 @@
 
                 const form = document.createElement("form");
                 cardBody.appendChild(form);
-
-                let rememberedCenters = {};
-                let rememberedZoom = {};
 
                 Object.keys(layers)
                     .sort()
@@ -364,10 +428,6 @@
 
                 const hr = document.createElement("hr");
                 form.appendChild(hr);
-
-                locationElement = document.createElement("div");
-                locationElement.innerText = "X: 0, Z: 0";
-                form.appendChild(locationElement);
 
                 Control.call(this, {
                     element: element,
@@ -410,6 +470,7 @@
             view: view,
             controls: [
                 new ol.control.Zoom(),
+                new ol.control.ScaleLine(),
                 new PapyrusControls()
             ]
         });
@@ -420,7 +481,7 @@
             var cX = Math.floor(x / 16);
             var cZ = Math.floor(z / 16);
 
-            locationElement.innerHTML = `${x}, ${z} <br/><small>${cX}, ${cZ}</small>`;
+            locationElement.innerHTML = `<div><h5>${x}, ${z}</h5></div><div class="ml-2"><small>(${cX}, ${cZ})</small></div>`;
         });
 
         map.on("singleclick", function(event) {
