@@ -426,9 +426,6 @@
                         form.appendChild(radioContainer);
                     });
 
-                const hr = document.createElement("hr");
-                form.appendChild(hr);
-
                 Control.call(this, {
                     element: element,
                     target: options.target
@@ -470,7 +467,6 @@
             view: view,
             controls: [
                 new ol.control.Zoom(),
-                new ol.control.ScaleLine(),
                 new PapyrusControls()
             ]
         });
