@@ -137,6 +137,16 @@
             ]
         });
 
+        function toBlockCoordidate(c)
+        {
+            return Math.floor((c / zoomRatioForMaximumZoom) * minecraftTilesAtMostZoomedInLevel);
+        }
+
+        function toMapCoordidate(c)
+        {
+            return (c * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel;
+        }
+
         // Construct the tile grid using the desired maximum and minimum extents listed above,
         // set the origin to [0, 0] (the center of the map), and the calculated resolutions array.
         const tileGrid = new ol.tilegrid.TileGrid({
@@ -239,10 +249,7 @@
 
         const view = new ol.View({
             projection: projection,
-            center: [
-                (centerX * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
-                (centerZ * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
-            ],
+            center: [ toMapCoordidate(centerX), toMapCoordidate(centerZ) ],
             zoom: config.globalMaxZoom / 2.5,
             minZoom: 0,
             maxZoom: config.globalMaxZoom - config.globalMinZoom
@@ -337,22 +344,31 @@
         });
 
         map.on("pointermove", function(event) {
-            var x = Math.floor(
-                (event.coordinate[0] / zoomRatioForMaximumZoom) *
-                minecraftTilesAtMostZoomedInLevel
-            );
-            var z = Math.floor(
-                (-event.coordinate[1] / zoomRatioForMaximumZoom) *
-                minecraftTilesAtMostZoomedInLevel
-            );
-
+            var x = toBlockCoordidate(event.coordinate[0]);
+            var z = toBlockCoordidate(-event.coordinate[1]);
             var cX = Math.floor(x / 16);
             var cZ = Math.floor(z / 16);
+
             locationElement.innerText = "X: " + x + " Z: " + z + "\n" + "Chunk " + cX + ", " + cZ;
         });
 
+        map.on("singleclick", function(event){
+            var zoom = map.getView().getZoom();
+            var coordinate = event.coordinate;
+
+            var x = toBlockCoordidate(event.coordinate[0]);
+            var z = toBlockCoordidate(-event.coordinate[1]);
+            var cX = Math.floor(x / 16);
+            var cZ = Math.floor(z / 16);
+        });
+
         // * Players *
+        var payersLayer = null;
+
         function createPayersLayer() {
+            if (payersLayer != null)
+                return;
+
             if (typeof (playersData) !== "undefined") {
                 var playerFeatures = [[], [], []];
 
@@ -374,10 +390,7 @@
                     });
 
                     var playerFeature = new ol.Feature({
-                        geometry: new ol.geom.Point([
-                            (player.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
-                            (-player.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
-                        ])
+                        geometry: new ol.geom.Point([toMapCoordidate(player.position[0]), toMapCoordidate(-player.position[2])])
                     });
 
                     playerFeature.setStyle(style);
@@ -395,11 +408,18 @@
 
                     map.addLayer(vectorLayer);
                 }
+
+                payersLayer = vectorLayer;
             }
         }
 
         // * Points of Interest *
+        var poiLayer = null;
+
         function createPOILayer() {
+            if (poiLayer != null)
+                return;
+
             var poiList = [];
 
             if (typeof (poiData) !== "undefined") {
@@ -435,10 +455,7 @@
                     });
 
                     var poiFeature = new ol.Feature({
-                        geometry: new ol.geom.Point([
-                            (poi.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
-                            (-poi.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
-                        ])
+                        geometry: new ol.geom.Point([toMapCoordidate(poi.position[0]), toMapCoordidate(-poi.position[2])])
                     });
 
                     poiFeature.setStyle(style);
@@ -455,12 +472,14 @@
 
                     map.addLayer(vectorLayer);
                 }
+
+                poiLayer = vectorLayer;
             }
         }
 
+        onSelectedLayerChanged(currentSelectedLayerKey);
         createPayersLayer();
         createPOILayer();
-        onSelectedLayerChanged(currentSelectedLayerKey);
 
     </script>
 </body>
