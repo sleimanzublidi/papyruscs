@@ -329,7 +329,7 @@ namespace Maploader.Renderer
             }
         }
 
-        private Bitmap[] elevationTextures = new Bitmap[256];
+        private readonly Bitmap[] elevationTextures = new Bitmap[256];
 
         private Bitmap GetElevationTexture(int elevation)
         {
@@ -339,7 +339,7 @@ namespace Maploader.Renderer
             var bitmap = new Bitmap(16, 16);
             using (var graphic = Graphics.FromImage(bitmap))
             {
-                var brush = new SolidBrush(Color.FromArgb(255 - elevation, Color.Black));
+                var brush = new SolidBrush(Color.FromArgb(elevation, Color.Black));
                 var rect = new Rectangle(0, 0, 16, 16);
                 graphic.FillRectangle(brush, rect);
             }

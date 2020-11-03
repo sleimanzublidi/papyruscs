@@ -32,7 +32,7 @@
             position: absolute;
             top: 0.5em;
             right: 0.5em;
-            width: 150px;
+            width: 200px;
         }
 
         .ol-mouse-position {
@@ -209,8 +209,8 @@
         const zoomRatioForMaximumZoom = 1 / Math.pow(2, config.globalMaxZoom - config.globalMinZoom);
         const minecraftTilesAtMostZoomedInLevel = config.blocksPerTile;
 
-        const centerX = 1536;
-        const centerZ = 0;
+        var centerX = 1536;
+        var centerZ = 0;
 
         // Use a projection where pixels have a 1:1 ratio with the screen at zoom level 0.
         const projection = new ol.proj.Projection({
@@ -258,9 +258,6 @@
         let gotoX = document.getElementById("gotoX");
         let gotoZ = document.getElementById("gotoZ");
 
-        gotoX.value = centerX;
-        gotoZ.value = centerZ;
-
         // * Tile Layers *
 
         const tileLayers = Object.keys(layers)
@@ -287,6 +284,14 @@
 
         let currentSelectedLayerKey = Object.keys(layers).sort()[0];
         const initialLayer = layers[currentSelectedLayerKey];
+
+        if (currentSelectedLayerKey.substr(0, 4) == "dim1") {
+            centerX = Math.floor(centerX / 16);
+            centerZ = Math.floor(centerZ / 16);
+        }
+
+        gotoX.value = centerX;
+        gotoZ.value = centerZ;
 
         let rememberedCenters = {};
         let rememberedZoom = {};
@@ -393,6 +398,8 @@
                 const form = document.createElement("form");
                 cardBody.appendChild(form);
 
+                var cl = currentSelectedLayerKey.substr(0, 4);
+
                 Object.keys(layers)
                     .sort()
                     .forEach(function(layerKey, idx) {
@@ -400,6 +407,12 @@
 
                         const radioContainer = document.createElement("div");
                         radioContainer.className = "custom-control custom-radio";
+
+                        if (layerKey.substr(0, 4) != cl) {
+                            const hr = document.createElement("hr");
+                            radioContainer.appendChild(hr);
+                        }
+                        cl = layerKey.substr(0, 4);
 
                         const radioInput = document.createElement("input");
                         radioInput.type = "radio";
