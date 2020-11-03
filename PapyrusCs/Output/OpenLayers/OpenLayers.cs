@@ -124,8 +124,10 @@ var playersData = // # INJECT DATA HERE;";
                     { "dim0_aquatic", "Aquatic" },
                     { "dim0_ore", "Ores" },
                     { "dim0_stronghold", "Strongholds" },
+                    { "dim0_elevation", "Elevation" },
                     { "dim1", "Nether" },
                     { "dim1_ore", "Nether Ores" },
+                    { "dim1_elevation", "Nether Elevation" },
                     { "dim2", "The End" },
                 };
 

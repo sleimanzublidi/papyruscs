@@ -2,7 +2,7 @@
   "profiles": {
     "MAP": {
       "commandName": "Project",
-      "commandLineArgs": "map -w \"E:\\Minecraft\\Quests\" --output \"E:\\Minecraft\\MAP\" --dim 0 --chunksperdimension 1",
+      "commandLineArgs": "map -w \"E:\\Minecraft\\Quests\" --output \"E:\\Minecraft\\MAP2\" --dim 1 --chunksperdimension 1 --profile \"elevation\"",
       "workingDirectory": "E:\\Minecraft\\DebugMap\\Temp"
     },
     "REPL": {

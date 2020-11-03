@@ -239,6 +239,23 @@ namespace Maploader.Renderer
                         }
                         break;
 
+                    case "elevation":
+                        foreach (var blockColumn in blocksFromSkyToBedrock) // Look for transparent blocks in single y column
+                        {
+                            var block = blockColumn.Value;
+                            if (block.Block.Id.Contains("water"))
+                            {
+                                continue;
+                            }
+
+                            blocksToRender.Push(block);
+                            if (!this.textureFinder.TransparentBlocks.ContainsKey(block.Block.Id))
+                            {
+                                break;
+                            }
+                        }
+                        break;
+
                     default:
                         {
                             foreach (var blockColumn in blocksFromSkyToBedrock) // Look for transparent blocks in single y column
@@ -259,6 +276,15 @@ namespace Maploader.Renderer
                 {
                     if (SkipSpecialBlockRender(block.Block))
                     {
+                        continue;
+                    }
+
+                    if (this.renderSettings.Profile == "elevation")
+                    {
+                        var x = xOffset + block.X * 16;
+                        var z = zOffset + block.Z * 16;
+
+                        this.graphics.DrawImageWithBrightness(dest, this.GetElevationTexture(block.Y) as TImage, x, z, 1);
                         continue;
                     }
 
@@ -301,6 +327,25 @@ namespace Maploader.Renderer
             {
                 this.graphics.DrawString(dest, $"{chunk.X * 1}, {chunk.Z * 1}", new Font(FontFamily.GenericSansSerif, 10), Brushes.Black, xOffset, zOffset);
             }
+        }
+
+        private Bitmap[] elevationTextures = new Bitmap[256];
+
+        private Bitmap GetElevationTexture(int elevation)
+        {
+            if (this.elevationTextures[elevation] != null)
+                return this.elevationTextures[elevation];
+
+            var bitmap = new Bitmap(16, 16);
+            using (var graphic = Graphics.FromImage(bitmap))
+            {
+                var brush = new SolidBrush(Color.FromArgb(255 - elevation, Color.Black));
+                var rect = new Rectangle(0, 0, 16, 16);
+                graphic.FillRectangle(brush, rect);
+            }
+
+            this.elevationTextures[elevation] = bitmap;
+            return elevationTextures[elevation];
         }
 
         private static void SearchForOres(Stack<BlockCoord> blocksToRender, List<KeyValuePair<uint, BlockCoord>> blocksFromSkyToBedrock)
