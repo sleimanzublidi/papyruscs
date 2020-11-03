@@ -97,6 +97,7 @@ namespace PapyrusCs
             try
             {
                 Console.WriteLine("Opening world...");
+                Console.WriteLine(options.MinecraftWorld);
                 world.Open(options.MinecraftWorld);
             }
             catch (Exception ex)
@@ -106,6 +107,8 @@ namespace PapyrusCs
                 Console.WriteLine(ex.Message);
                 return -1;
             }
+
+            Console.WriteLine(world.WorldName);
 
             // Start Generation
             if (options.RenderMap)
@@ -232,28 +235,28 @@ namespace PapyrusCs
 
                 Console.WriteLine("Total Time {0}", _time.Elapsed);
 
-                if (Debugger.IsAttached)
+                Console.WriteLine("Map generation finished!");
+                if (options.OutputPath.Length >= 2 && options.OutputPath[1] == ':') // absolute path
                 {
-                    Console.ReadKey();
+                    Console.WriteLine($"Your map is at {options.OutputPath}");
+                }
+                else
+                {
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine($"Your map is at {Path.Combine(Environment.CurrentDirectory, options.OutputPath)}");
+                    Console.WriteLine();
+                    Console.WriteLine();
                 }
             }
 
-
-            Console.WriteLine("Map generation finished!");
-            if (options.OutputPath.Length >= 2 && options.OutputPath[1] == ':') // absolute path
-            {
-                Console.WriteLine($"Your map is at {options.OutputPath}");
-            }
-            else
-            {
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine($"Your map is at {Path.Combine(Environment.CurrentDirectory, options.OutputPath)}");
-                Console.WriteLine();
-                Console.WriteLine();
-            }
-
             world.Close();
+
+            if (Debugger.IsAttached)
+            {
+                Console.ReadKey();
+            }
+
             return 0;
         }
 

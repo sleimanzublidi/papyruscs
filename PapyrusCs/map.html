@@ -297,8 +297,12 @@
         let rememberedZoom = {};
 
         function onSelectedLayerChanged(layerKey) {
+            popupOverlay.setPosition(undefined);
+
             if (layerKey == "dim0_stronghold") {
                 document.getElementById("map").style.background = "#fff";
+            } else if (layerKey == "dim1_elevation") {
+                document.getElementById("map").style.background = "#481F1F";
             } else {
                 document.getElementById("map").style.background = "#202020";
             }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using Maploader.Core;
 using Maploader.World;
@@ -31,7 +32,7 @@ namespace PapyrusCs
             //Dump(world, new string[] { });
 
             Console.WriteLine();
-            Console.WriteLine("REPL Ready");
+            Console.WriteLine(world.WorldName + " ready");
 
             while (true)
             {
@@ -57,6 +58,13 @@ namespace PapyrusCs
                 {
                     //FindPortals(world, "".Split(' ', StringSplitOptions.RemoveEmptyEntries));
                 }
+            }
+
+            world.Close();
+
+            if (Debugger.IsAttached)
+            {
+                Console.ReadKey();
             }
 
             return 0;

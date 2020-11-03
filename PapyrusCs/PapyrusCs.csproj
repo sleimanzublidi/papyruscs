@@ -58,7 +58,7 @@
 
   <ItemGroup>
     <None Update="map.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="textures\blocks\acacia_trapdoor.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
