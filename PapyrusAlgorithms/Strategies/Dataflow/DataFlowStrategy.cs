@@ -14,6 +14,7 @@ using Maploader.Renderer.Imaging;
 using Maploader.Renderer.Texture;
 using Maploader.World;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using PapyrusAlgorithms.Data;
 using PapyrusAlgorithms.Database;
 using PapyrusCs.Database;
@@ -55,11 +56,11 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
         public int Dimension { get; set; }
         public string Profile { get; set; }
 
-        public bool IsUpdate => isUpdate;
+        public bool IsUpdate => this.isUpdate;
         public bool DeleteExistingUpdateFolder { get; set; }
-
         public int NewInitialZoomLevel { get; set; }
         public int NewLastZoomLevel { get; set; }
+
         private string pathToDb;
         private string pathToDbUpdate;
         private string pathToDbBackup;
@@ -68,55 +69,71 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
         public void RenderInitialLevel()
         {
-            World.ChunkPool = new ChunkPool();
-            graphics.DefaultQuality = FileQuality;
+            this.World.ChunkPool = new ChunkPool();
+            this.graphics.DefaultQuality = this.FileQuality;
 
             Console.Write("Grouping subchunks... ");
 
-            var keysByXZ = AllWorldKeys.Where(c => c.X <= XMax && c.X >= XMin && c.Z <= ZMax && c.Z >= ZMin)
-                .GroupBy(x => x.XZ);
-
-            List<GroupedChunkSubKeys> chunkKeys = new List<GroupedChunkSubKeys>();
-            foreach (var chunkGroup in keysByXZ)
-            {
-                chunkKeys.Add(new GroupedChunkSubKeys(chunkGroup));
-            }
+            var chunkKeys = this.AllWorldKeys
+                .Where(c => c.X <= this.XMax && c.X >= this.XMin && c.Z <= this.ZMax && c.Z >= this.ZMin)
+                .GroupBy(x => x.XZ)
+                .Select(x => new GroupedChunkSubKeys(x))
+                .ToList();
 
             Console.WriteLine(chunkKeys.Count);
 
-            AllWorldKeys.Clear();
+            this.AllWorldKeys.Clear();
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
+            var numberOfThreadsUsed = Math.Max(1, this.RenderSettings.MaxNumberOfThreads);
 
-            var t = Math.Max(1, this.RenderSettings.MaxNumberOfThreads);
+            var getOptions = new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = Math.Min(2 * numberOfThreadsUsed, this.RenderSettings.MaxNumberOfQueueEntries),
+                EnsureOrdered = false,
+                MaxDegreeOfParallelism = 1
+            };
 
-            var tsave = FileFormat == "webp" ? t : 2;
+            var bitmapOptions = new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = Math.Min(2 * numberOfThreadsUsed, this.RenderSettings.MaxNumberOfQueueEntries),
+                EnsureOrdered = false,
+                MaxDegreeOfParallelism = numberOfThreadsUsed
+            };
 
-            var getOptions = new ExecutionDataflowBlockOptions()
-                {BoundedCapacity = Math.Min(2*t, RenderSettings.MaxNumberOfQueueEntries), EnsureOrdered = false, MaxDegreeOfParallelism = 1};
-            var bitmapOptions = new ExecutionDataflowBlockOptions()
-                {BoundedCapacity = Math.Min(2 * t, RenderSettings.MaxNumberOfQueueEntries), EnsureOrdered = false, MaxDegreeOfParallelism = t };
-            var saveOptions = new ExecutionDataflowBlockOptions()
-                {BoundedCapacity = Math.Min(2 * t, RenderSettings.MaxNumberOfQueueEntries), EnsureOrdered = false, MaxDegreeOfParallelism = tsave};
-            var dbOptions = new ExecutionDataflowBlockOptions()
-                {BoundedCapacity = Math.Min(2 * t, RenderSettings.MaxNumberOfQueueEntries), EnsureOrdered = false, MaxDegreeOfParallelism = 1};
+            var threadsUsedForSaving = this.FileFormat == "webp" ? numberOfThreadsUsed : 2;
+            var saveOptions = new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = Math.Min(2 * numberOfThreadsUsed, this.RenderSettings.MaxNumberOfQueueEntries),
+                EnsureOrdered = false,
+                MaxDegreeOfParallelism = threadsUsedForSaving
+            };
 
+            var dbOptions = new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = Math.Min(2 * numberOfThreadsUsed,
+                this.RenderSettings.MaxNumberOfQueueEntries),
+                EnsureOrdered = false,
+                MaxDegreeOfParallelism = 1
+            };
 
-            var groupedToTiles = chunkKeys.GroupBy(x => x.Subchunks.First().Value.GetXZGroup(ChunksPerDimension))
+            var groupedToTiles = chunkKeys
+                .GroupBy(x => x.Subchunks.First().Value.GetXZGroup(this.ChunksPerDimension))
                 .ToList();
 
-            Console.WriteLine($"Grouped by {ChunksPerDimension} to {groupedToTiles.Count} tiles");
+            Console.WriteLine($"Grouped by {this.ChunksPerDimension} to {groupedToTiles.Count} tiles");
+
             var average = groupedToTiles.Average(x => x.Count());
             Console.WriteLine($"Average of {average:0.0} chunks per tile");
 
-            var getDataBlock = new GetDataBlock(World, renderedSubchunks, getOptions, ForceOverwrite);
+            var getDataBlock = new GetDataBlock(this.World, this.renderedSubchunks, getOptions, this.ForceOverwrite);
 
-            var createAndRender = new CreateChunkAndRenderBlock<TImage>(World, TextureDictionary, TexturePath, RenderSettings, graphics, ChunkSize, ChunksPerDimension, bitmapOptions);
+            var createAndRender = new CreateChunkAndRenderBlock<TImage>(this.World, this.TextureDictionary, this.TexturePath, this.RenderSettings, this.graphics, this.ChunkSize, this.ChunksPerDimension, bitmapOptions);
 
-            var saveBitmapBlock = new SaveBitmapBlock<TImage>(isUpdate ? pathToMapUpdate : pathToMap, NewInitialZoomLevel, FileFormat, saveOptions, graphics);
+            var saveBitmapBlock = new SaveBitmapBlock<TImage>(this.isUpdate ? this.pathToMapUpdate : this.pathToMap, this.NewInitialZoomLevel, this.FileFormat, saveOptions, this.graphics);
 
-            var batchBlock = new BatchBlock<IEnumerable<SubChunkData>>(128, new GroupingDataflowBlockOptions() {BoundedCapacity = 128*8, EnsureOrdered = false});
+            var batchBlock = new BatchBlock<IEnumerable<SubChunkData>>(128, new GroupingDataflowBlockOptions { BoundedCapacity = 128 * 8, EnsureOrdered = false });
 
             // Todo, put in own class
             var inserts = 0;
@@ -137,19 +154,19 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                     }*/
 
                     var toInsert = datas.Where(x => x.FoundInDb == false)
-                        .Select(x => new Checksum {Crc32 = x.Crc32, LevelDbKey = x.Key, Profile = Profile}).ToList();
+                        .Select(x => new Checksum { Crc32 = x.Crc32, LevelDbKey = x.Key, Profile = Profile }).ToList();
 
                     if (toInsert.Count > 0)
                     {
-                        db.BulkInsert(toInsert);
+                        this.db.BulkInsert(toInsert);
                         inserts += toInsert.Count;
                     }
 
                     var toUpdate = datas.Where(x => x.FoundInDb).Select(x => new Checksum()
-                        {Id = x.ForeignDbId, Crc32 = x.Crc32, LevelDbKey = x.Key, Profile = Profile}).ToList();
+                    { Id = x.ForeignDbId, Crc32 = x.Crc32, LevelDbKey = x.Key, Profile = Profile }).ToList();
                     if (toUpdate.Count > 0)
                     {
-                        db.BulkUpdate(toUpdate);
+                        this.db.BulkUpdate(toUpdate);
                         updates += toUpdate.Count;
                     }
 
@@ -163,11 +180,10 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
             createAndRender.ChunksRendered += (sender, args) => ChunksRendered?.Invoke(sender, args);
 
-            getDataBlock.Block.LinkTo(createAndRender.Block, new DataflowLinkOptions() {PropagateCompletion = true,});
-            createAndRender.Block.LinkTo(saveBitmapBlock.Block, new DataflowLinkOptions() {PropagateCompletion = true});
-            saveBitmapBlock.Block.LinkTo(batchBlock, new DataflowLinkOptions() {PropagateCompletion = true});
-            batchBlock.LinkTo(dbBLock, new DataflowLinkOptions {PropagateCompletion = true});
-            //saveBitmapBlock.Block.LinkTo(dbBLock, new DataflowLinkOptions() {PropagateCompletion = true});
+            getDataBlock.Block.LinkTo(createAndRender.Block, new DataflowLinkOptions { PropagateCompletion = true, });
+            createAndRender.Block.LinkTo(saveBitmapBlock.Block, new DataflowLinkOptions { PropagateCompletion = true });
+            saveBitmapBlock.Block.LinkTo(batchBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            batchBlock.LinkTo(dbBLock, new DataflowLinkOptions { PropagateCompletion = true });
 
             int postCount = 0;
             foreach (var groupedToTile in groupedToTiles)
@@ -201,9 +217,8 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
             Console.WriteLine($"\n{getDataBlock.ProcessedCount} {createAndRender.ProcessedCount}  {saveBitmapBlock.ProcessedCount}");
         }
 
-
-        protected Func<IEnumerable<int>, ParallelOptions, Action<int>, ParallelLoopResult> OuterLoopStrategy =>
-            Parallel.ForEach;
+        protected Func<IEnumerable<int>, ParallelOptions, Action<int>, ParallelLoopResult> OuterLoopStrategy
+            => Parallel.ForEach;
 
         public bool ForceOverwrite { get; set; }
 
@@ -212,13 +227,13 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
             var sourceZoomLevel = this.NewInitialZoomLevel;
             var sourceDiameter = this.InitialDiameter;
 
-            var sourceLevelXmin = XMin / ChunksPerDimension;
-            var sourceLevelXmax = XMax / ChunksPerDimension;
-            var sourceLevelZmin = ZMin / ChunksPerDimension;
-            var sourceLevelZmax = ZMax / ChunksPerDimension;
+            var sourceLevelXmin = this.XMin / this.ChunksPerDimension;
+            var sourceLevelXmax = this.XMax / this.ChunksPerDimension;
+            var sourceLevelZmin = this.ZMin / this.ChunksPerDimension;
+            var sourceLevelZmax = this.ZMax / this.ChunksPerDimension;
 
 
-            while (sourceZoomLevel > NewLastZoomLevel)
+            while (sourceZoomLevel > this.NewLastZoomLevel)
             {
                 // Force garbage collection (may not be necessary)
                 GC.Collect();
@@ -246,50 +261,50 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                 Console.WriteLine(
                     $"\nRendering Level {destZoom} with source coordinates X {sourceLevelXmin} to {sourceLevelXmax}, Z {sourceLevelZmin} to {sourceLevelZmax}");
 
-                OuterLoopStrategy(BetterEnumerable.SteppedRange(sourceLevelXmin, sourceLevelXmax, 2),
-                    new ParallelOptions() {MaxDegreeOfParallelism = RenderSettings.MaxNumberOfThreads},
+                this.OuterLoopStrategy(BetterEnumerable.SteppedRange(sourceLevelXmin, sourceLevelXmax, 2),
+                    new ParallelOptions() { MaxDegreeOfParallelism = this.RenderSettings.MaxNumberOfThreads },
                     x =>
                     {
                         for (int z = sourceLevelZmin; z < sourceLevelZmax; z += 2)
                         {
-                            var b1 = LoadBitmap(sourceZoom, x, z, isUpdate);
-                            var b2 = LoadBitmap(sourceZoom, x + 1, z, isUpdate);
-                            var b3 = LoadBitmap(sourceZoom, x, z + 1, isUpdate);
-                            var b4 = LoadBitmap(sourceZoom, x + 1, z + 1, isUpdate);
+                            var b1 = this.LoadBitmap(sourceZoom, x, z, this.isUpdate);
+                            var b2 = this.LoadBitmap(sourceZoom, x + 1, z, this.isUpdate);
+                            var b3 = this.LoadBitmap(sourceZoom, x, z + 1, this.isUpdate);
+                            var b4 = this.LoadBitmap(sourceZoom, x + 1, z + 1, this.isUpdate);
 
                             if (b1 != null || b2 != null || b3 != null || b4 != null)
                             {
-                                var bfinal = graphics.CreateEmptyImage(TileSize, TileSize);
+                                var bfinal = this.graphics.CreateEmptyImage(this.TileSize, this.TileSize);
                                 {
-                                    b1 = b1 ?? LoadBitmap(sourceZoom, x, z, false);
-                                    b2 = b2 ?? LoadBitmap(sourceZoom, x + 1, z, false);
-                                    b3 = b3 ?? LoadBitmap(sourceZoom, x, z + 1, false);
-                                    b4 = b4 ?? LoadBitmap(sourceZoom, x + 1, z + 1, false);
+                                    b1 = b1 ?? this.LoadBitmap(sourceZoom, x, z, false);
+                                    b2 = b2 ?? this.LoadBitmap(sourceZoom, x + 1, z, false);
+                                    b3 = b3 ?? this.LoadBitmap(sourceZoom, x, z + 1, false);
+                                    b4 = b4 ?? this.LoadBitmap(sourceZoom, x + 1, z + 1, false);
 
-                                    var halfTileSize = TileSize / 2;
+                                    var halfTileSize = this.TileSize / 2;
 
                                     if (b1 != null)
                                     {
-                                        graphics.DrawImage(bfinal, b1, 0, 0, halfTileSize, halfTileSize);
+                                        this.graphics.DrawImage(bfinal, b1, 0, 0, halfTileSize, halfTileSize);
                                     }
 
                                     if (b2 != null)
                                     {
-                                        graphics.DrawImage(bfinal, b2, halfTileSize, 0, halfTileSize, halfTileSize);
+                                        this.graphics.DrawImage(bfinal, b2, halfTileSize, 0, halfTileSize, halfTileSize);
                                     }
 
                                     if (b3 != null)
                                     {
-                                        graphics.DrawImage(bfinal, b3, 0, halfTileSize, halfTileSize, halfTileSize);
+                                        this.graphics.DrawImage(bfinal, b3, 0, halfTileSize, halfTileSize, halfTileSize);
                                     }
 
                                     if (b4 != null)
                                     {
-                                        graphics.DrawImage(bfinal, b4, halfTileSize, halfTileSize, halfTileSize,
+                                        this.graphics.DrawImage(bfinal, b4, halfTileSize, halfTileSize, halfTileSize,
                                             halfTileSize);
                                     }
 
-                                    SaveBitmap(destZoom, x / 2, z / 2, isUpdate, bfinal);
+                                    this.SaveBitmap(destZoom, x / 2, z / 2, this.isUpdate, bfinal);
                                 }
 
                                 // Dispose of any bitmaps, releasing memory
@@ -319,15 +334,15 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
         private TImage LoadBitmap(int zoom, int x, int z, bool isUpdate)
         {
-            var mapPath = isUpdate ? pathToMapUpdate : pathToMap;
+            var mapPath = isUpdate ? this.pathToMapUpdate : this.pathToMap;
 
             var path = Path.Combine(mapPath, $"{zoom}", $"{x}");
-            var filepath = Path.Combine(path, $"{z}.{FileFormat}");
+            var filepath = Path.Combine(path, $"{z}.{this.FileFormat}");
             if (File.Exists(filepath))
             {
                 try
                 {
-                    return graphics.LoadImage(filepath);
+                    return this.graphics.LoadImage(filepath);
                 }
                 catch (Exception ex)
                 {
@@ -341,59 +356,58 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
         private void SaveBitmap(int zoom, int x, int z, bool isUpdate, TImage b)
         {
-            var mapPath = isUpdate ? pathToMapUpdate : pathToMap;
+            var mapPath = isUpdate ? this.pathToMapUpdate : this.pathToMap;
 
             var path = Path.Combine(mapPath, $"{zoom}", $"{x}");
-            var filepath = Path.Combine(path, $"{z}.{FileFormat}");
+            var filepath = Path.Combine(path, $"{z}.{this.FileFormat}");
 
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
-            graphics.SaveImage(b, filepath);
+            this.graphics.SaveImage(b, filepath);
         }
 
 
         public event EventHandler<ChunksRenderedEventArgs> ChunksRendered;
         public event EventHandler<ZoomRenderedEventArgs> ZoomLevelRenderd;
 
-
         public void Init()
         {
-            pathToDb = Path.Combine(OutputPath, "chunks.sqlite");
-            pathToDbUpdate = Path.Combine(OutputPath, "chunks-update.sqlite");
-            pathToDbBackup = Path.Combine(OutputPath, "chunks-backup.sqlite");
+            this.pathToDb = Path.Combine(this.OutputPath, "chunks.sqlite");
+            this.pathToDbUpdate = Path.Combine(this.OutputPath, "chunks-update.sqlite");
+            this.pathToDbBackup = Path.Combine(this.OutputPath, "chunks-backup.sqlite");
 
-            pathToMapUpdate = Path.Combine(OutputPath, "update", "dim" + Dimension + (string.IsNullOrEmpty(Profile) ? "" : $"_{Profile}"));
-            pathToMap = Path.Combine(OutputPath, "map", "dim" + Dimension + (string.IsNullOrEmpty(Profile) ? "" : $"_{Profile}"));
+            this.pathToMapUpdate = Path.Combine(this.OutputPath, "update", "dim" + this.Dimension + (string.IsNullOrEmpty(this.Profile) ? "" : $"_{this.Profile}"));
+            this.pathToMap = Path.Combine(this.OutputPath, "map", "dim" + this.Dimension + (string.IsNullOrEmpty(this.Profile) ? "" : $"_{this.Profile}"));
 
-            isUpdate = File.Exists(pathToDb);
+            this.isUpdate = File.Exists(this.pathToDb);
 
-            NewInitialZoomLevel = 20;
-            NewLastZoomLevel = NewInitialZoomLevel - InitialZoomLevel;
+            this.NewInitialZoomLevel = 20;
+            this.NewLastZoomLevel = this.NewInitialZoomLevel - this.InitialZoomLevel;
 
-            if (isUpdate)
+            if (this.isUpdate)
             {
                 Console.WriteLine("Found chunks.sqlite, this must be an update of the map");
 
-                if (File.Exists(pathToDbUpdate))
+                if (File.Exists(this.pathToDbUpdate))
                 {
-                    Console.WriteLine($"Deleting {pathToDbUpdate} old update database file");
-                    File.Delete(pathToDbUpdate);
-                    File.Delete(pathToDbUpdate + "-wal");
-                    File.Delete(pathToDbUpdate + "-shm");
+                    Console.WriteLine($"Deleting {this.pathToDbUpdate} old update database file");
+                    File.Delete(this.pathToDbUpdate);
+                    File.Delete(this.pathToDbUpdate + "-wal");
+                    File.Delete(this.pathToDbUpdate + "-shm");
                 }
 
-                File.Copy(pathToDb, pathToDbUpdate);
+                File.Copy(this.pathToDb, this.pathToDbUpdate);
 
-                if (Directory.Exists(pathToMapUpdate) && DeleteExistingUpdateFolder)
+                if (Directory.Exists(this.pathToMapUpdate) && this.DeleteExistingUpdateFolder)
                 {
-                    Console.WriteLine("Deleting old update in {0}", pathToMapUpdate);
-                    DirectoryInfo di = new DirectoryInfo(pathToMapUpdate);
+                    Console.WriteLine("Deleting old update in {0}", this.pathToMapUpdate);
+                    DirectoryInfo di = new DirectoryInfo(this.pathToMapUpdate);
                     var files = di.EnumerateFiles("*.*", SearchOption.AllDirectories);
                     var fileInfos = files.ToList();
-                    if (fileInfos.Any(x => x.Extension != "."+FileFormat))
+                    if (fileInfos.Any(x => x.Extension != "." + this.FileFormat))
                     {
                         Console.WriteLine("Can not delete the update folder, because there are files in it not generated by PapyrusCs");
-                        foreach (var f in fileInfos.Where(x => x.Extension != "." + FileFormat))
+                        foreach (var f in fileInfos.Where(x => x.Extension != "." + this.FileFormat))
                         {
                             Console.WriteLine("Unknown file {0}", f.FullName);
                         }
@@ -409,21 +423,21 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
             }
 
             var c = new DbCreator();
-            db = c.CreateDbContext(pathToDbUpdate, true);
-            db.Database.Migrate();
+            this.db = c.CreateDbContext(this.pathToDbUpdate, true);
+            this.db.Database.Migrate();
 
-            var settings = db.Settings.FirstOrDefault(x => x.Dimension == Dimension && x.Profile == Profile);
+            var settings = this.db.Settings.FirstOrDefault(x => x.Dimension == this.Dimension && x.Profile == this.Profile);
             if (settings != null)
             {
                 this.FileFormat = settings.Format;
                 this.FileQuality = settings.Quality;
                 this.ChunksPerDimension = settings.ChunksPerDimension;
-                Console.WriteLine("Overriding settings with: Format {0}, Quality {1} ChunksPerDimension {2}", FileFormat, FileQuality, ChunksPerDimension);
+                Console.WriteLine("Overriding settings with: Format {0}, Quality {1} ChunksPerDimension {2}", this.FileFormat, this.FileQuality, this.ChunksPerDimension);
 
-                settings.MaxZoom = NewInitialZoomLevel;
-                settings.MinZoom = NewLastZoomLevel;
-                Console.WriteLine("Setting Zoom levels to {0} down to {1}", NewInitialZoomLevel, NewLastZoomLevel);
-                db.SaveChanges();
+                settings.MaxZoom = this.NewInitialZoomLevel;
+                settings.MinZoom = this.NewLastZoomLevel;
+                Console.WriteLine("Setting Zoom levels to {0} down to {1}", this.NewInitialZoomLevel, this.NewLastZoomLevel);
+                this.db.SaveChanges();
             }
             else
             {
@@ -436,54 +450,54 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                     Format = FileFormat,
                     MaxZoom = this.NewInitialZoomLevel,
                     MinZoom = this.NewLastZoomLevel,
-                    ChunksPerDimension = db.Settings.FirstOrDefault()?.ChunksPerDimension ?? this.ChunksPerDimension
+                    ChunksPerDimension = this.db.Settings.FirstOrDefault()?.ChunksPerDimension ?? this.ChunksPerDimension
                 };
-                db.Add(settings);
-                db.SaveChanges();
+                this.db.Add(settings);
+                this.db.SaveChanges();
             }
 
-            renderedSubchunks = db.Checksums.Where(x => x.Profile == Profile).ToImmutableDictionary(
+            this.renderedSubchunks = this.db.Checksums.Where(x => x.Profile == this.Profile).ToImmutableDictionary(
                 x => new LevelDbWorldKey2(x.LevelDbKey), x => new KeyAndCrc(x.Id, x.Crc32));
-            Console.WriteLine($"Found {renderedSubchunks.Count} subchunks which are already rendered");
+            Console.WriteLine($"Found {this.renderedSubchunks.Count} subchunks which are already rendered");
         }
 
         public void Finish()
         {
-            if (string.IsNullOrWhiteSpace(pathToDbUpdate))
+            if (string.IsNullOrWhiteSpace(this.pathToDbUpdate))
                 return;
-            if (string.IsNullOrWhiteSpace(pathToDb))
+            if (string.IsNullOrWhiteSpace(this.pathToDb))
                 return;
-            if (string.IsNullOrWhiteSpace(pathToDbBackup))
+            if (string.IsNullOrWhiteSpace(this.pathToDbBackup))
                 return;
 
-            db.Database.CloseConnection();
-            db.Dispose();
+            this.db.Database.CloseConnection();
+            this.db.Dispose();
 
-            if (File.Exists(pathToDbUpdate))
+            if (File.Exists(this.pathToDbUpdate))
             {
-                if (File.Exists(pathToDbBackup))
+                if (File.Exists(this.pathToDbBackup))
                 {
                     Console.WriteLine("Deleting old chunks.sqlite backup...");
-                    File.Delete(pathToDbBackup);
+                    File.Delete(this.pathToDbBackup);
                 }
 
-                if (File.Exists(pathToDb))
+                if (File.Exists(this.pathToDb))
                 {
                     Console.WriteLine("Creating new chunks.sqlite backup...");
-                    File.Move(pathToDb, pathToDbBackup);
+                    File.Move(this.pathToDb, this.pathToDbBackup);
                 }
 
                 Console.WriteLine("Updating chunks.sqlite...");
-                File.Move(pathToDbUpdate, pathToDb);
+                File.Move(this.pathToDbUpdate, this.pathToDb);
             }
 
-            if (Directory.Exists(pathToMapUpdate))
+            if (Directory.Exists(this.pathToMapUpdate))
             {
-                var filesToCopy = Directory.EnumerateFiles(pathToMapUpdate, "*." + FileFormat, SearchOption.AllDirectories);
-                Console.WriteLine($"Copying {filesToCopy.Count()} to {pathToMap}");
+                var filesToCopy = Directory.EnumerateFiles(this.pathToMapUpdate, "*." + this.FileFormat, SearchOption.AllDirectories);
+                Console.WriteLine($"Copying {filesToCopy.Count()} to {this.pathToMap}");
                 foreach (var f in filesToCopy)
                 {
-                    var newPath = f.Replace(pathToMapUpdate, pathToMap);
+                    var newPath = f.Replace(this.pathToMapUpdate, this.pathToMap);
                     FileInfo fi = new FileInfo(newPath);
                     fi.Directory?.Create();
                     File.Copy(f, newPath, true);
@@ -493,8 +507,7 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
         public Settings[] GetSettings()
         {
-            return db.Settings.ToArray();
+            return this.db.Settings.ToArray();
         }
     }
 }
-

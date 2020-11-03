@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DmitryBrant.ImageFormats;
 using Maploader.Renderer.Imaging;
 
 namespace Maploader.Renderer.Texture
@@ -180,15 +179,15 @@ namespace Maploader.Renderer.Texture
         {
             name = name.Replace("minecraft:", "");
 
-            var newTexture = GetSubstitution(name, data, x, z, y);
+            var newTexture = this.GetSubstitution(name, data, x, z, y);
 
             if (newTexture != null)
             {
                 return newTexture;
             }
-            if (texturesJson.ContainsKey(name))
+            if (this.texturesJson.ContainsKey(name))
             {
-                return GetTexture(name, data);
+                return this.GetTexture(name, data);
             }
             return null;
         }
@@ -197,7 +196,7 @@ namespace Maploader.Renderer.Texture
         {
             // For debugging purposes
 
-            if (Debug)
+            if (this.Debug)
             {
                 Console.WriteLine($"{x} {z} {y}: {name},{data}");
             }
@@ -207,7 +206,7 @@ namespace Maploader.Renderer.Texture
             switch (name)
             {
                 case "cobblestone_wall":
-                    return GetTexture("cobblestone_wall", data).Translate(5, 5, 6, 6);
+                    return this.GetTexture("cobblestone_wall", data).Translate(5, 5, 6, 6);
 
                 case "bubble_column":
                     return "textures/blocks/water_placeholder";
@@ -218,456 +217,456 @@ namespace Maploader.Renderer.Texture
                 case "fire":
                     return "textures/blocks/fire_0_placeholder";
                 case "packed_ice":
-                    return GetTexture("ice_packed", data);
+                    return this.GetTexture("ice_packed", data);
                 case "lectern":
                     return "textures/blocks/lectern_top";
                 case "cake":
-                    return GetTexture("cake_top",0);
+                    return this.GetTexture("cake_top", 0);
                 case "bed":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch (legacyData & 0xF7)
                     {
-                        case 0:
-                            return CreateTexture((legacyData & 8) == 8
-                                    ? "textures/blocks/bed_head_top"
-                                    : "textures/blocks/bed_feet_top")
-                                .Rotate(RotateFlip.Rotate90FlipNone);
-                        case 1:
-                            return CreateTexture((legacyData & 8) == 8
-                                    ? "textures/blocks/bed_head_top"
-                                    : "textures/blocks/bed_feet_top")
-                                .Rotate(RotateFlip.Rotate180FlipNone);
-                        case 2:
-                            return CreateTexture((legacyData & 8) == 8
-                                    ? "textures/blocks/bed_head_top"
-                                    : "textures/blocks/bed_feet_top")
-                                .Rotate(RotateFlip.Rotate270FlipNone);
-                        case 3:
-                            return CreateTexture((legacyData & 8) == 8
-                                    ? "textures/blocks/bed_head_top"
-                                    : "textures/blocks/bed_feet_top")
-                                .Rotate(RotateFlip.RotateNoneFlipNone);
-                    }
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch (legacyData & 0xF7)
+                        {
+                            case 0:
+                                return this.CreateTexture((legacyData & 8) == 8
+                                        ? "textures/blocks/bed_head_top"
+                                        : "textures/blocks/bed_feet_top")
+                                    .Rotate(RotateFlip.Rotate90FlipNone);
+                            case 1:
+                                return this.CreateTexture((legacyData & 8) == 8
+                                        ? "textures/blocks/bed_head_top"
+                                        : "textures/blocks/bed_feet_top")
+                                    .Rotate(RotateFlip.Rotate180FlipNone);
+                            case 2:
+                                return this.CreateTexture((legacyData & 8) == 8
+                                        ? "textures/blocks/bed_head_top"
+                                        : "textures/blocks/bed_feet_top")
+                                    .Rotate(RotateFlip.Rotate270FlipNone);
+                            case 3:
+                                return this.CreateTexture((legacyData & 8) == 8
+                                        ? "textures/blocks/bed_head_top"
+                                        : "textures/blocks/bed_feet_top")
+                                    .Rotate(RotateFlip.RotateNoneFlipNone);
+                        }
 
-                    return null;
-                }
+                        return null;
+                    }
 
                 case "wooden_slab":
-                    return GetTexture("planks", data);
+                    return this.GetTexture("planks", data);
                 case "double_wooden_slab":
-                    return GetTexture("planks", data);
+                    return this.GetTexture("planks", data);
 
                 case "prismarine_bricks_stairs":
-                    return GetTexture("prismarine_bricks");
+                    return this.GetTexture("prismarine_bricks");
 
                 case "oak_stairs":
-                    return GetTexture("planks"); // data = direction
+                    return this.GetTexture("planks"); // data = direction
                 case "brick_stairs":
-                    return GetTexture("brick");
+                    return this.GetTexture("brick");
                 case "dark_prismarine_stairs":
-                    return GetTexture("dark_prismarine"); // data = direction
+                    return this.GetTexture("dark_prismarine"); // data = direction
                 case "prismarine_stairs":
-                    return GetTexture("prismarine"); // data = direction
+                    return this.GetTexture("prismarine"); // data = direction
                 case "spruce_stairs":
-                    return GetTexture("spruce_planks", data);
+                    return this.GetTexture("spruce_planks", data);
                 case "birch_stairs":
-                    return GetTexture("birch_planks", data);
+                    return this.GetTexture("birch_planks", data);
                 case "acacia_stairs":
-                    return GetTexture("acacia_planks", data);
+                    return this.GetTexture("acacia_planks", data);
                 case "warped_stairs":
-                    return GetTexture("warped_planks", data);
+                    return this.GetTexture("warped_planks", data);
                 case "warped_pressure_plate":
-                    return GetTexture("warped_planks", data);
+                    return this.GetTexture("warped_planks", data);
                 case "dark_oak_stairs":
-                    return GetTexture("dark_oak_planks", data);
+                    return this.GetTexture("dark_oak_planks", data);
                 case "nether_brick_stairs":
-                    return GetTexture("nether_brick", data);
+                    return this.GetTexture("nether_brick", data);
                 case "sandstone_stairs":
-                    return GetTexture("sandstone_top", data);
+                    return this.GetTexture("sandstone_top", data);
                 case "normal_stone_stairs":
-                    return GetTexture("stone", data);
+                    return this.GetTexture("stone", data);
                 case "jungle_stairs":
-                    return GetTexture("planks", data);
+                    return this.GetTexture("planks", data);
                 case "stone_brick_stairs":
-                    return GetTexture("stonebrick");
+                    return this.GetTexture("stonebrick");
                 case "stone_stairs":
-                    return GetTexture("cobblestone");
+                    return this.GetTexture("cobblestone");
                 case "mossy_cobblestone_stairs":
-                    return GetTexture("cobblestone_mossy");
+                    return this.GetTexture("cobblestone_mossy");
                 case "quartz_stairs":
-                    return GetTexture("quartz_block_top", data);
+                    return this.GetTexture("quartz_block_top", data);
                 case "mossy_stone_brick_stairs":
-                    return GetTexture("mossy_stone_brick");
+                    return this.GetTexture("mossy_stone_brick");
                 case "smooth_sandstone_stairs":
-                    return GetTexture("smooth_sandstone");
+                    return this.GetTexture("smooth_sandstone");
 
                 case "red_sandstone_stairs":
-                    return GetTexture("redsandstone_top");
+                    return this.GetTexture("redsandstone_top");
                 case "smooth_red_sandstone_stairs":
-                    return GetTexture("smooth_red_sandstone");
+                    return this.GetTexture("smooth_red_sandstone");
                 case "purpur_stairs":
-                    return GetTexture("purpur_block_top");
+                    return this.GetTexture("purpur_block_top");
                 case "red_nether_brick_stairs":
-                    return GetTexture("red_nether_brick");
+                    return this.GetTexture("red_nether_brick");
                 case "end_brick_stairs":
-                    return GetTexture("end_bricks", data);
+                    return this.GetTexture("end_bricks", data);
                 case "smooth_quartz_stairs":
-                    return GetTexture("stair_quartz_block_top", data);
+                    return this.GetTexture("stair_quartz_block_top", data);
 
                 case "cauldron":
-                    return GetTexture("cauldron_inner", data)
-                           + GetTexture("cauldron_top", data);
+                    return this.GetTexture("cauldron_inner", data)
+                           + this.GetTexture("cauldron_top", data);
                 case "carpet":
-                    return GetTexture("wool", data);
+                    return this.GetTexture("wool", data);
                 case "hay_block":
-                    return GetTexture("hayblock_top", data);
+                    return this.GetTexture("hayblock_top", data);
                 case "hopper":
-                    return GetTexture("hopper_inside", data)
-                           + GetTexture("hopper_top", data);
+                    return this.GetTexture("hopper_inside", data)
+                           + this.GetTexture("hopper_top", data);
                 case "double_plant":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch (legacyData & 0x8)
                     {
-                        case 8:
-                            return GetTexture("double_plant_carried", legacyData & 0xF7);
-                        case 0:
-                            return GetTexture("double_plant_bottom", legacyData & 0xF7);
-                    }
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch (legacyData & 0x8)
+                        {
+                            case 8:
+                                return this.GetTexture("double_plant_carried", legacyData & 0xF7);
+                            case 0:
+                                return this.GetTexture("double_plant_bottom", legacyData & 0xF7);
+                        }
 
-                    return null;
-                }
+                        return null;
+                    }
                 case "tnt":
-                    return GetTexture("tnt_top");
+                    return this.GetTexture("tnt_top");
                 case "rail":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch (legacyData)
                     {
-                        case 0:
-                            return GetTexture("rail_normal", legacyData);
-                        case 1:
-                            return GetTexture("rail_normal", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
-                        case 2:
-                            return GetTexture("rail_normal", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
-                        case 3:
-                            return GetTexture("rail_normal", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
-                        case 4:
-                            return GetTexture("rail_normal", legacyData);
-                        case 5:
-                            return GetTexture("rail_normal", legacyData);
-                        case 6:
-                            return GetTexture("rail_normal_turned", legacyData);
-                        case 7:
-                            return GetTexture("rail_normal_turned", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
-                        case 8:
-                            return GetTexture("rail_normal_turned", legacyData).Rotate(RotateFlip.Rotate180FlipNone);
-                        case 9:
-                            return GetTexture("rail_normal_turned", legacyData).Rotate(RotateFlip.Rotate270FlipNone);
-                    }
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch (legacyData)
+                        {
+                            case 0:
+                                return this.GetTexture("rail_normal", legacyData);
+                            case 1:
+                                return this.GetTexture("rail_normal", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
+                            case 2:
+                                return this.GetTexture("rail_normal", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
+                            case 3:
+                                return this.GetTexture("rail_normal", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
+                            case 4:
+                                return this.GetTexture("rail_normal", legacyData);
+                            case 5:
+                                return this.GetTexture("rail_normal", legacyData);
+                            case 6:
+                                return this.GetTexture("rail_normal_turned", legacyData);
+                            case 7:
+                                return this.GetTexture("rail_normal_turned", legacyData).Rotate(RotateFlip.Rotate90FlipNone);
+                            case 8:
+                                return this.GetTexture("rail_normal_turned", legacyData).Rotate(RotateFlip.Rotate180FlipNone);
+                            case 9:
+                                return this.GetTexture("rail_normal_turned", legacyData).Rotate(RotateFlip.Rotate270FlipNone);
+                        }
 
-                    return null;
-                }
+                        return null;
+                    }
                 case "golden_rail":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    if ((legacyData & 8) == 8)
-                        return RenderRail(legacyData & 0xF7, "rail_golden_powered");
-                    else
-                        return RenderRail(legacyData, "rail_golden");
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        if ((legacyData & 8) == 8)
+                            return this.RenderRail(legacyData & 0xF7, "rail_golden_powered");
+                        else
+                            return this.RenderRail(legacyData, "rail_golden");
+                    }
                 case "activator_rail":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    if ((legacyData & 8) == 8)
-                        return RenderRail(legacyData & 0xF7, "rail_activator");
-                    else
-                        return RenderRail(legacyData, "rail_activator");
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        if ((legacyData & 8) == 8)
+                            return this.RenderRail(legacyData & 0xF7, "rail_activator");
+                        else
+                            return this.RenderRail(legacyData, "rail_activator");
+                    }
 
 
                 case "detector_rail":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    if ((legacyData & 8) == 8)
-                        return RenderRail(legacyData & 0xF7, "rail_detector_powered");
-                    else
-                        return RenderRail(legacyData, "rail_detector");
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        if ((legacyData & 8) == 8)
+                            return this.RenderRail(legacyData & 0xF7, "rail_detector_powered");
+                        else
+                            return this.RenderRail(legacyData, "rail_detector");
+                    }
 
                 case "monster_egg":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture("monster_egg", Math.Max(0, legacyData - 1));
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture("monster_egg", Math.Max(0, legacyData - 1));
+                    }
 
                 case "red_mushroom_block":
-                    return GetTexture("mushroom_red_top", data);
+                    return this.GetTexture("mushroom_red_top", data);
                 case "brown_mushroom_block":
-                    return GetTexture("mushroom_brown_top", data);
+                    return this.GetTexture("mushroom_brown_top", data);
                 case "brown_mushroom":
-                    return GetTexture("mushroom_red", data);
+                    return this.GetTexture("mushroom_red", data);
                 case "red_mushroom":
-                    return GetTexture("mushroom_brown", data);
+                    return this.GetTexture("mushroom_brown", data);
                 case "mossy_cobblestone":
-                    return GetTexture("cobblestone_mossy", data);
+                    return this.GetTexture("cobblestone_mossy", data);
                 case "hard_glass":
-                    // Intentional fall-through
+                // Intentional fall-through
                 case "hard_stained_glass":
-                    return GetTexture("stained_glass", data);
+                    return this.GetTexture("stained_glass", data);
                 case "glass_pane":
-                    // Intentional fall-through
+                // Intentional fall-through
                 case "hard_glass_pane":
-                    return GetTexture("glass_pane_top", data);
+                    return this.GetTexture("glass_pane_top", data);
                 case "stained_glass_pane":
-                    // Intentional fall-through
+                // Intentional fall-through
                 case "hard_stained_glass_pane":
-                    return GetTexture("stained_glass_pane_top", data);
+                    return this.GetTexture("stained_glass_pane_top", data);
                 case "redstone_torch":
-                    return GetTexture("redstone_torch_on", data);
+                    return this.GetTexture("redstone_torch_on", data);
                 case "redstone_wire":
-                    return GetTexture("redstone_dust_cross", data);
+                    return this.GetTexture("redstone_dust_cross", data);
                 case "lit_redstone_ore":
-                    return GetTexture("redstone_ore", data);
+                    return this.GetTexture("redstone_ore", data);
                 case "unpowered_repeater":
-                    return GetTexture("repeater_up", data);
+                    return this.GetTexture("repeater_up", data);
                 case "daylight_detector":
-                    return GetTexture("daylight_detector_top", data);
+                    return this.GetTexture("daylight_detector_top", data);
                 case "daylight_detector_inverted":
-                    return GetTexture("daylight_detector_top", data);
+                    return this.GetTexture("daylight_detector_top", data);
                 case "dispenser":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch ((BlockFace) legacyData)
                     {
-                        case BlockFace.Up:
-                            return GetTexture("dispenser_front_vertical");
-                        default:
-                            return GetTexture("dispenser_top", legacyData);
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch ((BlockFace)legacyData)
+                        {
+                            case BlockFace.Up:
+                                return this.GetTexture("dispenser_front_vertical");
+                            default:
+                                return this.GetTexture("dispenser_top", legacyData);
+                        }
                     }
-                }
 
                 case "observer":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch ((BlockFace) legacyData)
                     {
-                        case BlockFace.Down:
-                            return GetTexture("observer_south");
-                        case BlockFace.Up:
-                            return GetTexture("observer_north");
-                        case BlockFace.North:
-                            return GetTexture("observer_top", 0, null, RotateFlip.Rotate180FlipNone);
-                        case BlockFace.South:
-                            return GetTexture("observer_top");
-                        case BlockFace.West:
-                            return GetTexture("observer_top", 0, null, RotateFlip.Rotate90FlipNone);
-                        case BlockFace.East:
-                            return GetTexture("observer_top", 0, null, RotateFlip.Rotate270FlipNone);
-                    }
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch ((BlockFace)legacyData)
+                        {
+                            case BlockFace.Down:
+                                return this.GetTexture("observer_south");
+                            case BlockFace.Up:
+                                return this.GetTexture("observer_north");
+                            case BlockFace.North:
+                                return this.GetTexture("observer_top", 0, null, RotateFlip.Rotate180FlipNone);
+                            case BlockFace.South:
+                                return this.GetTexture("observer_top");
+                            case BlockFace.West:
+                                return this.GetTexture("observer_top", 0, null, RotateFlip.Rotate90FlipNone);
+                            case BlockFace.East:
+                                return this.GetTexture("observer_top", 0, null, RotateFlip.Rotate270FlipNone);
+                        }
 
-                    return GetTexture("observer_top", legacyData);
-                }
+                        return this.GetTexture("observer_top", legacyData);
+                    }
 
                 case "dropper":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch ((BlockFace) legacyData)
                     {
-                        case BlockFace.Up:
-                            return GetTexture("dropper_front_vertical");
-                        default:
-                            return GetTexture("dropper_top", legacyData);
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch ((BlockFace)legacyData)
+                        {
+                            case BlockFace.Up:
+                                return this.GetTexture("dropper_front_vertical");
+                            default:
+                                return this.GetTexture("dropper_top", legacyData);
+                        }
                     }
-                }
 
                 case "smoker":
-                    return GetTexture("smoker_top");
+                    return this.GetTexture("smoker_top");
                 case "barrel":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    switch ((BlockFace)legacyData)
                     {
-                        case BlockFace.Up:
-                            return GetTexture("barrel_top");
-                        case BlockFace.Down:
-                            return GetTexture("barrel_bottom");
-                        default:
-                            return GetTexture("barrel_side", legacyData);
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        switch ((BlockFace)legacyData)
+                        {
+                            case BlockFace.Up:
+                                return this.GetTexture("barrel_top");
+                            case BlockFace.Down:
+                                return this.GetTexture("barrel_bottom");
+                            default:
+                                return this.GetTexture("barrel_side", legacyData);
+                        }
                     }
-                }
                 case "bell":
-                    return GetTexture("bell_top", 0).Translate(
+                    return this.GetTexture("bell_top", 0).Translate(
                         new Rect(0, 0, 8, 8),
                         new Rect(4, 4, 8, 8));
                 case "composter":
-                    return GetTexture("composter_bottom");
+                    return this.GetTexture("composter_bottom");
                 case "campfire":
-                    return GetTexture("campfire_log_lit", 0).Translate(0, 0, 16, 16);
+                    return this.GetTexture("campfire_log_lit", 0).Translate(0, 0, 16, 16);
                 case "ender_chest":
-                    return GetTexture("ender_chest_inventory_top", data);
+                    return this.GetTexture("ender_chest_inventory_top", data);
                 case "anvil":
-                    return GetTexture("anvil_top_damaged_x", data);
+                    return this.GetTexture("anvil_top_damaged_x", data);
                 case "cactus":
-                    return GetTexture("cactus_top", data).Translate(1, 1, 14, 14);
+                    return this.GetTexture("cactus_top", data).Translate(1, 1, 14, 14);
 
                 case "dark_oak_pressure_plate":
-                    return GetTexture("dark_oak_planks", 0).Translate(1, 1, 14, 14);
+                    return this.GetTexture("dark_oak_planks", 0).Translate(1, 1, 14, 14);
                 case "birch_pressure_plate":
-                    return GetTexture("birch_planks", 0).Translate(1, 1, 14, 14);
+                    return this.GetTexture("birch_planks", 0).Translate(1, 1, 14, 14);
                 case "jungle_pressure_plate":
-                    return GetTexture("jungle_planks", 0).Translate(1, 1, 14, 14);
+                    return this.GetTexture("jungle_planks", 0).Translate(1, 1, 14, 14);
                 case "acacia_pressure_plate":
-                    return GetTexture("acacia_planks", 0).Translate(1, 1, 14, 14);
+                    return this.GetTexture("acacia_planks", 0).Translate(1, 1, 14, 14);
                 case "wooden_pressure_plate":
-                    return GetTexture("planks", data).Translate(1, 1, 14, 14);
+                    return this.GetTexture("planks", data).Translate(1, 1, 14, 14);
                 case "spruce_pressure_plate":
-                    return GetTexture("spruce_planks", data).Translate(1, 1, 14, 14);
+                    return this.GetTexture("spruce_planks", data).Translate(1, 1, 14, 14);
                 case "light_weighted_pressure_plate":
-                    return GetTexture("gold_block", data).Translate(1, 1, 14, 14);
+                    return this.GetTexture("gold_block", data).Translate(1, 1, 14, 14);
                 case "heavy_weighted_pressure_plate":
-                    return GetTexture("iron_block", data).Translate(1, 1, 14, 14);
+                    return this.GetTexture("iron_block", data).Translate(1, 1, 14, 14);
                 case "stone_pressure_plate":
-                    return GetTexture("stone", data).Translate(1, 1, 14, 14);
+                    return this.GetTexture("stone", data).Translate(1, 1, 14, 14);
                     ;
 
                 case "frame":
-                    return RenderFrame(data, "sign");
+                    return this.RenderFrame(data, "sign");
 
                 case "standing_sign":
-                    return RenderSign("sign");
+                    return this.RenderSign("sign");
                 case "spruce_standing_sign":
-                    return RenderSign("spruce_sign");
+                    return this.RenderSign("spruce_sign");
                 case "birch_standing_sign":
-                    return RenderSign("birch_sign");
+                    return this.RenderSign("birch_sign");
                 case "jungle_standing_sign":
-                    return RenderSign("acacia_sign");
+                    return this.RenderSign("acacia_sign");
                 case "acacia_standing_sign":
-                    return RenderSign("jungle_sign");
+                    return this.RenderSign("jungle_sign");
                 case "darkoak_standing_sign":
-                    return RenderSign("darkoak_sign");
+                    return this.RenderSign("darkoak_sign");
 
                 case "fence_gate":
-                    return RenderFenceGate(data, "planks");
+                    return this.RenderFenceGate(data, "planks");
                 case "spruce_fence_gate":
-                    return RenderFenceGate(data, "spruce_planks");
+                    return this.RenderFenceGate(data, "spruce_planks");
                 case "birch_fence_gate":
-                    return RenderFenceGate(data, "birch_planks");
+                    return this.RenderFenceGate(data, "birch_planks");
                 case "acacia_fence_gate":
-                    return RenderFenceGate(data, "acacia_planks");
+                    return this.RenderFenceGate(data, "acacia_planks");
                 case "jungle_fence_gate":
-                    return RenderFenceGate(data, "jungle_planks");
+                    return this.RenderFenceGate(data, "jungle_planks");
                 case "dark_oak_fence_gate":
-                    return RenderFenceGate(data, "dark_oak_planks");
+                    return this.RenderFenceGate(data, "dark_oak_planks");
 
                 case "nether_brick_fence":
-                    return GetTexture("nether_brick", 0, new TextureTranslation(
+                    return this.GetTexture("nether_brick", 0, new TextureTranslation(
                         new Rect(5, 5, 6, 6),
                         new Rect(0, 0, 16, 16)));
                 case "fence":
-                    return GetTexture("planks", data, new TextureTranslation(
+                    return this.GetTexture("planks", data, new TextureTranslation(
                         new Rect(5, 5, 6, 6),
                         new Rect(0, 0, 16, 16)));
                 case "podzol":
-                    return GetTexture("dirt_podzol_top", data);
+                    return this.GetTexture("dirt_podzol_top", data);
                 case "grass":
-                    return GetTexture("grass_carried_top", data);
+                    return this.GetTexture("grass_carried_top", data);
                 case "seagrass":
-                    return GetTexture("seagrass_carried", data);
+                    return this.GetTexture("seagrass_carried", data);
                 case "tallgrass":
-                    return GetTexture("tallgrass_carried", data);
+                    return this.GetTexture("tallgrass_carried", data);
 
                 case "grass_path":
-                    return GetTexture("grass_path_top", data);
+                    return this.GetTexture("grass_path_top", data);
                 case "lit_pumpkin":
-                    return GetTexture("pumpkin_top", data);
+                    return this.GetTexture("pumpkin_top", data);
                 case "pumpkin":
-                    return GetTexture("pumpkin_top", data);
+                    return this.GetTexture("pumpkin_top", data);
                 case "carved_pumpkin":
-                    return GetTexture("pumpkin_top", data);
+                    return this.GetTexture("pumpkin_top", data);
                 case "torch":
-                    // Intentional fall-through
+                // Intentional fall-through
                 case "underwater_torch":
-                    // Intentional fall-through
+                // Intentional fall-through
                 case "colored_torch_bp":
-                    // Intentional fall-through
+                // Intentional fall-through
                 case "colored_torch_rg":
-                    return GetTexture("torch_on", data);
+                    return this.GetTexture("torch_on", data);
                 case "crafting_table":
-                    return GetTexture("crafting_table_top", data);
+                    return this.GetTexture("crafting_table_top", data);
                 case "brick_block":
-                    return GetTexture("brick", data);
+                    return this.GetTexture("brick", data);
 
 
                 case "chest":
-                    return GetTexture("chest_inventory_top", data);
+                    return this.GetTexture("chest_inventory_top", data);
                 case "snow_layer":
-                    return GetTexture("snow", data);
+                    return this.GetTexture("snow", data);
 
                 case "flower_pot":
-                    return GetTexture("flower_pot", data, new TextureTranslation(
+                    return this.GetTexture("flower_pot", data, new TextureTranslation(
                         new Rect(5, 5, 6, 6),
                         new Rect(5, 10, 6, 6)));
 
                 case "conduit":
-                    return GetTexture("conduit", data,
+                    return this.GetTexture("conduit", data,
                         new TextureTranslation(
                             new Rect(5, 5, 6, 6),
                             new Rect(12, 0, 6, 6)));
 
                 case "kelp":
-                    return GetTexture("kelp_top", data);
+                    return this.GetTexture("kelp_top", data);
                 case "dried_kelp_block":
-                    return GetTexture("dried_kelp_block_top", data);
+                    return this.GetTexture("dried_kelp_block_top", data);
                 case "stained_hardened_clay":
-                    return GetTexture("stained_clay", data);
+                    return this.GetTexture("stained_clay", data);
 
 
 
 
                 case "end_portal_frame":
-                    return GetTexture("endframe_top");
+                    return this.GetTexture("endframe_top");
 
                 case "wooden_door":
-                    return GetTexture("door_upper");
+                    return this.GetTexture("door_upper");
                 case "spruce_door":
-                    return GetTexture("door_upper", 1);
+                    return this.GetTexture("door_upper", 1);
                 case "birch_door":
-                    return GetTexture("door_upper", 2);
+                    return this.GetTexture("door_upper", 2);
                 case "jungle_door":
-                    return GetTexture("door_upper", 3);
+                    return this.GetTexture("door_upper", 3);
                 case "acacia_door":
-                    return GetTexture("door_upper", 4);
+                    return this.GetTexture("door_upper", 4);
                 case "dark_oak_door":
-                    return GetTexture("door_upper", 5);
+                    return this.GetTexture("door_upper", 5);
                 case "iron_door":
-                    return GetTexture("door_upper", 6);
+                    return this.GetTexture("door_upper", 6);
 
                 case "spruce_button":
-                    return RenderButton(data, "spruce_planks");
+                    return this.RenderButton(data, "spruce_planks");
                 case "wooden_button":
-                    return RenderButton(data, "planks");
+                    return this.RenderButton(data, "planks");
                 case "stone_button":
-                    return RenderButton(data, "stone");
+                    return this.RenderButton(data, "stone");
                 case "dark_oak_button":
-                    return RenderButton(data, "dark_oak_planks");
+                    return this.RenderButton(data, "dark_oak_planks");
                 case "acacia_button":
-                    return RenderButton(data, "acacia_planks");
+                    return this.RenderButton(data, "acacia_planks");
                 case "birch_button":
-                    return RenderButton(data, "birch_planks");
+                    return this.RenderButton(data, "birch_planks");
                 case "jungle_button":
-                    return RenderButton(data, "jungle_planks");
+                    return this.RenderButton(data, "jungle_planks");
                 case "wall_banner":
                 case "standing_banner":
-                    return RenderSign("sign");
+                    return this.RenderSign("sign");
                 case "tripWire":
-                    return GetTexture("trip_wire", data);
+                    return this.GetTexture("trip_wire", data);
                 case "tripwire_hook":
-                    return RenderTripwireHook(data, "trip_wire_source");
+                    return this.RenderTripwireHook(data, "trip_wire_source");
 
                 case "lever":
-                    return RenderLever(data);
+                    return this.RenderLever(data);
 
                 case "wall_sign":
                 case "darkoak_wall_sign":
@@ -675,283 +674,287 @@ namespace Maploader.Renderer.Texture
                 case "birch_wall_sign":
                 case "jungle_wall_sign":
                 case "acacia_wall_sign":
-                    return RenderWallSign(data, name.Replace("wall_", ""));
+                    return this.RenderWallSign(data, name.Replace("wall_", ""));
 
                 case "melon_block":
-                    return GetTexture("melon_top", data);
+                    return this.GetTexture("melon_top", data);
 
                 case "quartz_block":
-                    return GetTexture("quartz_block_top", data);
+                    return this.GetTexture("quartz_block_top", data);
 
                 case "seaLantern":
-                    return GetTexture("sea_lantern", data);
+                    return this.GetTexture("sea_lantern", data);
 
                 case "purpur_block":
-                    return GetTexture("purpur_block_side", data);
+                    return this.GetTexture("purpur_block_side", data);
 
                 case "turtle_egg":
-                        return GetTexture("turtle_egg", 0).Translate(
-                            new Rect(0, 0, 4, 4),
-                            new Rect(6, 6, 4, 4));
+                    return this.GetTexture("turtle_egg", 0).Translate(
+                        new Rect(0, 0, 4, 4),
+                        new Rect(6, 6, 4, 4));
 
 
                 case "powered_comparator":
-                    return GetTexture("comparator_up", data);
+                    return this.GetTexture("comparator_up", data);
                 case "unpowered_comparator":
-                    return GetTexture("comparator_up", data);
+                    return this.GetTexture("comparator_up", data);
 
                 case "pistonArmCollision":
-                return GetTexture("piston_top_normal", data);
+                    return this.GetTexture("piston_top_normal", data);
                 case "piston":
-                    return RenderPiston(data, "normal");
+                    return this.RenderPiston(data, "normal");
                 case "stickyPistonArmCollision":
-                    return GetTexture("piston_top_sticky", data);
+                    return this.GetTexture("piston_top_sticky", data);
                 case "sticky_piston":
-                    return RenderPiston(data, "sticky");
+                    return this.RenderPiston(data, "sticky");
                 case "jukebox":
-                    return GetTexture("jukebox_top", data);
+                    return this.GetTexture("jukebox_top", data);
                 case "stonecutter_block":
                 case "stonecutter":
-                    return GetTexture("stonecutter_top", data);
+                    return this.GetTexture("stonecutter_top", data);
                 case "loom":
-                    return GetTexture("loom_top", data);
+                    return this.GetTexture("loom_top", data);
                 case "smithing_table":
-                    return GetTexture("smithing_table_top", data);
+                    return this.GetTexture("smithing_table_top", data);
                 case "cartography_table":
-                    return GetTexture("cartography_table_top", data);
+                    return this.GetTexture("cartography_table_top", data);
                 case "fletching_table":
-                    return GetTexture("fletching_table_top", data);
+                    return this.GetTexture("fletching_table_top", data);
                 case "redstone_lamp":
-                    return GetTexture("redstone_lamp_off", data);
+                    return this.GetTexture("redstone_lamp_off", data);
                 case "lit_redstone_lamp":
-                    return GetTexture("redstone_lamp_on", data);
+                    return this.GetTexture("redstone_lamp_on", data);
 
                 case "undyed_shulker_box":
-                    return GetTexture("undyed_shulker_box_top", data);
+                    return this.GetTexture("undyed_shulker_box_top", data);
 
                 case "red_sandstone":
-                    return GetTexture("redsandstone_top", data);
+                    return this.GetTexture("redsandstone_top", data);
                 case "sandstone":
-                    return GetTexture("sandstone_top", data);
+                    return this.GetTexture("sandstone_top", data);
 
                 case "stone_slab":
-                    return GetTexture("stone_slab_top", data);
+                    return this.GetTexture("stone_slab_top", data);
 
                 case "stone_slab2":
-                    return GetTexture("stone_slab_top_2", data);
+                    return this.GetTexture("stone_slab_top_2", data);
                 case "double_stone_slab2":
-                    return GetTexture("stone_slab_top_2", data);
+                    return this.GetTexture("stone_slab_top_2", data);
                 case "stone_slab3":
 
-                    return GetTexture("stone_slab_top_3", data);
+                    return this.GetTexture("stone_slab_top_3", data);
                 case "double_stone_slab3":
-                    return GetTexture("stone_slab_top_3", data);
+                    return this.GetTexture("stone_slab_top_3", data);
 
                 case "stone_slab4":
-                    return GetTexture("stone_slab_top_4", data);
+                    return this.GetTexture("stone_slab_top_4", data);
                 case "double_stone_slab4":
-                    return GetTexture("stone_slab_top_4", data);
+                    return this.GetTexture("stone_slab_top_4", data);
 
 
                 case "double_stone_slab":
-                    return GetTexture("stone_slab_top", data);
+                    return this.GetTexture("stone_slab_top", data);
 
 
                 case "bone_block":
-                    return GetTexture("bone_block_top", data);
+                    return this.GetTexture("bone_block_top", data);
 
 
                 case "mycelium":
-                    return GetTexture("mycelium_top", data);
+                    return this.GetTexture("mycelium_top", data);
 
                 case "shulker_box":
-                    return GetTexture("shulker_box_top", data);
+                    return this.GetTexture("shulker_box_top", data);
 
                 case "slime":
-                    return GetTexture("slime_block", data);
+                    return this.GetTexture("slime_block", data);
                 case "bamboo":
-                    return GetTexture("bamboo_stem", data, new TextureTranslation(
+                    return this.GetTexture("bamboo_stem", data, new TextureTranslation(
                         new Rect(6, 0, 4, 16),
                         new Rect(0, 0, 4, 16)
                     ));
 
                 case "powered_repeater":
-                    return GetTexture("repeater_up", data);
+                    return this.GetTexture("repeater_up", data);
 
                 case "unlit_redstone_torch":
-                    return GetTexture("redstone_torch_off", data);
+                    return this.GetTexture("redstone_torch_off", data);
 
                 case "lit_furnace":
-                    return GetTexture("redstone_torch_off", data);
+                    return this.GetTexture("redstone_torch_off", data);
 
                 case "concrete":
-                    return GetTexture("concrete", data);
+                    return this.GetTexture("concrete", data);
 
                 case "trapped_chest":
-                    return GetTexture("chest_inventory_top", data);
+                    return this.GetTexture("chest_inventory_top", data);
                 case "polished_diorite_stairs":
-                    return GetTexture("polished_diorite", data);
+                    return this.GetTexture("polished_diorite", data);
 
                 case "polished_andesite_stairs":
-                    return GetTexture("polished_andesite", data);
+                    return this.GetTexture("polished_andesite", data);
                 case "polished_granite_stairs":
-                    return GetTexture("polished_granite", data);
+                    return this.GetTexture("polished_granite", data);
                 case "diorite_stairs":
-                    return GetTexture("diorite", data);
+                    return this.GetTexture("diorite", data);
                 case "andesite_stairs":
-                    return GetTexture("andesite", data);
+                    return this.GetTexture("andesite", data);
                 case "granite_stairs":
-                    return GetTexture("granite", data);
+                    return this.GetTexture("granite", data);
                 /* LEAVES */
                 case "leaves":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture("leaves_carried", legacyData & 0xF7);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture("leaves_carried", legacyData & 0xF7);
+                    }
                 case "leaves2":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture("leaves_carried2", legacyData & 0xF7);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture("leaves_carried2", legacyData & 0xF7);
+                    }
 
 
                 /* WOOD */
                 case "wood":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture("wood", (legacyData & 0xFFF7) * 2 + ((legacyData & 0x8) / 8));
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture("wood", (legacyData & 0xFFF7) * 2 + ((legacyData & 0x8) / 8));
+                    }
 
                 case "stripped_jungle_log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 2) == 0 ? "stripped_jungle_log_top" : "stripped_jungle_log_side", legacyData);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 2) == 0 ? "stripped_jungle_log_top" : "stripped_jungle_log_side", legacyData);
+                    }
                 case "stripped_spruce_log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 2) == 0 ? "stripped_spruce_log_top" : "stripped_spruce_log_side", legacyData);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 2) == 0 ? "stripped_spruce_log_top" : "stripped_spruce_log_side", legacyData);
+                    }
                 case "stripped_birch_log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 2) == 0 ? "stripped_birch_log_top" : "stripped_birch_log_side", legacyData);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 2) == 0 ? "stripped_birch_log_top" : "stripped_birch_log_side", legacyData);
+                    }
                 case "stripped_dark_oak_log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 2) == 0 ? "stripped_dark_oak_log_top" : "stripped_dark_oak_log_side",
-                        legacyData);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 2) == 0 ? "stripped_dark_oak_log_top" : "stripped_dark_oak_log_side",
+                            legacyData);
+                    }
                 case "stripped_oak_log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 2) == 0 ? "stripped_oak_log_top" : "stripped_oak_log_side", legacyData);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 2) == 0 ? "stripped_oak_log_top" : "stripped_oak_log_side", legacyData);
+                    }
                 case "stripped_acacia_log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 2) == 0 ? "stripped_acacia_log_top" : "stripped_acacia_log_side", legacyData);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 2) == 0 ? "stripped_acacia_log_top" : "stripped_acacia_log_side", legacyData);
+                    }
 
                 case "enchanting_table":
-                    return GetTexture("enchanting_table_top", data);
+                    return this.GetTexture("enchanting_table_top", data);
                 case "log":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 8) == 0 ? "log_top" : "log_side", legacyData & 3);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 8) == 0 ? "log_top" : "log_side", legacyData & 3);
+                    }
                 case "log2":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture((legacyData & 8) == 0 ? "log_top2" : "log_side2", legacyData & 3);
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture((legacyData & 8) == 0 ? "log_top2" : "log_side2", legacyData & 3);
+                    }
 
                 case "coral_fan_hang":
-                    return GetTexture("coral_fan_hang_a", data);
+                    return this.GetTexture("coral_fan_hang_a", data);
                 case "coral_fan_hang2":
-                    return GetTexture("coral_fan_hang_b", data);
+                    return this.GetTexture("coral_fan_hang_b", data);
                 case "coral_fan_hang3":
-                    return GetTexture("coral_fan_hang_c", data);
+                    return this.GetTexture("coral_fan_hang_c", data);
 
                 case "scaffolding":
-                    return GetTexture("scaffolding_top", data);
+                    return this.GetTexture("scaffolding_top", data);
                 case "grindstone":
-                    return GetTexture("grindstone_pivot", data);
+                    return this.GetTexture("grindstone_pivot", data);
                 case "sweet_berry_bush":
-                {
-                    int legacyData = LegacyGetOldDataValue(data);
-                    return GetTexture($"sweet_berry_bush_{legacyData%4}");
-                }
+                    {
+                        int legacyData = this.LegacyGetOldDataValue(data);
+                        return this.GetTexture($"sweet_berry_bush_{legacyData % 4}");
+                    }
                 case "bee_nest":
-                    return GetTexture("bee_nest_top", data);
+                    return this.GetTexture("bee_nest_top", data);
                 case "beehive":
-                    return GetTexture("beehive_top", data);
+                    return this.GetTexture("beehive_top", data);
                 case "honey_block":
-                    return GetTexture("honey_top", data);
+                    return this.GetTexture("honey_top", data);
                 case "glowingobsidian":
-                    return GetTexture("glowing_obsidian", data);
+                    return this.GetTexture("glowing_obsidian", data);
                 case "netherreactor":
-                    return GetTexture("reactor_core", data);
+                    return this.GetTexture("reactor_core", data);
                 case "chain_command_block":
-                    return GetTexture("command_block_chain_front", data);
+                    return this.GetTexture("command_block_chain_front", data);
                 case "repeating_command_block":
-                    return GetTexture("command_block_repeating_front", data);
+                    return this.GetTexture("command_block_repeating_front", data);
 
                 // Nether update (1.16)
                 case "crimson_nylium":
-                    return GetTexture("crimson_nylium_top", data);
+                    return this.GetTexture("crimson_nylium_top", data);
                 case "warped_nylium":
-                    return GetTexture("warped_nylium_top", data);
+                    return this.GetTexture("warped_nylium_top", data);
                 case "crimson_stem":
-                    return GetTexture("stripped_crimson_stem_top", data);
+                    return this.GetTexture("stripped_crimson_stem_top", data);
                 case "warped_stem":
-                    return GetTexture("stripped_warped_stem_top", data);
+                    return this.GetTexture("stripped_warped_stem_top", data);
                 case "warped_fungus":
-                    return GetTexture("nether_shroom_blue", data);
+                    return this.GetTexture("nether_shroom_blue", data);
                 case "crimson_fungus":
-                    return GetTexture("nether_shroom_red", data);
+                    return this.GetTexture("nether_shroom_red", data);
                 case "twisting_vines":
-                    return GetTexture("twisting_vines_base", data);
+                    return this.GetTexture("twisting_vines_base", data);
                 case "soul_fire":
-                    return GetTexture("soul_fire_0", data);
+                    return this.GetTexture("soul_fire_0", data);
 
                 case "basalt":
-                    return GetTexture("basalt_top", data);
+                    return this.GetTexture("basalt_top", data);
                 case "polished_basalt":
-                    return GetTexture("polished_basalt_top", data);
+                    return this.GetTexture("polished_basalt_top", data);
 
                 case "blackstone":
-                    return GetTexture("blackstone_top", data);
+                    return this.GetTexture("blackstone_top", data);
                 case "blackstone_slab":
-                    return GetTexture("blackstone_top", data);
+                    return this.GetTexture("blackstone_top", data);
                 case "blackstone_stairs":
-                    return GetTexture("blackstone_top", data);
+                    return this.GetTexture("blackstone_top", data);
                 case "blackstone_wall":
-                    return GetTexture("blackstone_top", data);
+                    return this.GetTexture("blackstone_top", data);
 
                 case "polished_blackstone_slab":
-                    return GetTexture("polished_blackstone", data);
+                    return this.GetTexture("polished_blackstone", data);
                 case "polished_blackstone_stairs":
-                    return GetTexture("polished_blackstone", data);
+                    return this.GetTexture("polished_blackstone", data);
                 case "polished_blackstone_wall":
-                    return GetTexture("polished_blackstone", data);
+                    return this.GetTexture("polished_blackstone", data);
 
                 case "polished_blackstone_brick_slab":
-                    return GetTexture("polished_blackstone_bricks", data);
+                    return this.GetTexture("polished_blackstone_bricks", data);
                 case "polished_blackstone_brick_stairs":
-                    return GetTexture("polished_blackstone_bricks", data);
+                    return this.GetTexture("polished_blackstone_bricks", data);
                 case "polished_blackstone_brick_wall":
-                    return GetTexture("polished_blackstone_bricks", data);
+                    return this.GetTexture("polished_blackstone_bricks", data);
 
                 case "warped_door":
-                    return GetTexture("warped_door_top", data);
+                    return this.GetTexture("warped_door_top", data);
                 case "crimson_door":
-                    return GetTexture("crimson_door_top", data);
+                    return this.GetTexture("crimson_door_top", data);
                 case "warped_wall_sign":
-                    return RenderWallSign(data, name.Replace("wall_", ""));
+                    return this.RenderWallSign(data, name.Replace("wall_", ""));
                 case "crimson_wall_sign":
-                    return RenderWallSign(data, name.Replace("wall_", ""));
+                    return this.RenderWallSign(data, name.Replace("wall_", ""));
+                case "minecraft:weeping_vines":
+                    return this.GetTexture("weeping_vines_base", data);
+                case "ancient_debris":
+                    return this.GetTexture("ancient_debris_top", data);
             }
 
             return null;
@@ -959,11 +962,11 @@ namespace Maploader.Renderer.Texture
 
         private TextureStack RenderWallSign(Dictionary<string, Object> data, string texture)
         {
-            var t = GetTexture(texture, 0).Translate(
+            var t = this.GetTexture(texture, 0).Translate(
                 new Rect(0, 7, 14, 2),
                 new Rect(1, 0, 14, 2)
             );
-            switch (LegacyGetOldDataValue(data))
+            switch (this.LegacyGetOldDataValue(data))
             {
                 case 0:
                     return t.Rotate(RotateFlip.Rotate270FlipNone);
@@ -988,17 +991,17 @@ namespace Maploader.Renderer.Texture
             switch (data)
             {
                 case 0:
-                    return GetTexture(texture, data);
+                    return this.GetTexture(texture, data);
                 case 1:
-                    return GetTexture(texture, data).Rotate(RotateFlip.Rotate90FlipNone);
+                    return this.GetTexture(texture, data).Rotate(RotateFlip.Rotate90FlipNone);
                 case 2:
-                    return GetTexture(texture, data).Rotate(RotateFlip.Rotate90FlipNone);
+                    return this.GetTexture(texture, data).Rotate(RotateFlip.Rotate90FlipNone);
                 case 3:
-                    return GetTexture(texture, data).Rotate(RotateFlip.Rotate90FlipNone);
+                    return this.GetTexture(texture, data).Rotate(RotateFlip.Rotate90FlipNone);
                 case 4:
-                    return GetTexture(texture, data);
+                    return this.GetTexture(texture, data);
                 case 5:
-                    return GetTexture(texture, data);
+                    return this.GetTexture(texture, data);
             }
 
             return null;
@@ -1006,7 +1009,7 @@ namespace Maploader.Renderer.Texture
 
         private TextureStack RenderSign(string texture)
         {
-            return GetTexture(texture, 0).Translate(
+            return this.GetTexture(texture, 0).Translate(
                 new Rect(0, 7, 14, 2),
                 new Rect(1, 7, 14, 2)
             );
@@ -1014,11 +1017,11 @@ namespace Maploader.Renderer.Texture
 
         private TextureStack RenderFrame(Dictionary<string, Object> data, string texture)
         {
-            var t = GetTexture(texture, 0).Translate(
+            var t = this.GetTexture(texture, 0).Translate(
                 new Rect(0, 7, 14, 2),
                 new Rect(1, 0, 14, 2)
             );
-            switch (LegacyGetOldDataValue(data))
+            switch (this.LegacyGetOldDataValue(data))
             {
                 case 0:
                     return t.Rotate(RotateFlip.Rotate270FlipNone);
@@ -1035,8 +1038,8 @@ namespace Maploader.Renderer.Texture
 
         private TextureStack RenderButton(Dictionary<string, Object> data, string texture)
         {
-            int legacyData = LegacyGetOldDataValue(data);
-            var t = GetTexture(texture, 0).Translate(
+            int legacyData = this.LegacyGetOldDataValue(data);
+            var t = this.GetTexture(texture, 0).Translate(
                 new Rect(6, 6, 4, 3),
                 new Rect(6, 0, 4, 3)
             );
@@ -1070,7 +1073,7 @@ namespace Maploader.Renderer.Texture
 
         private TextureStack RenderFenceGate(Dictionary<string, Object> data, string texture)
         {
-            int legacyData = LegacyGetOldDataValue(data);
+            int legacyData = this.LegacyGetOldDataValue(data);
             if ((legacyData & 8) == 8)
             {
                 // Per https://minecraft.gamepedia.com/Fence_Gate : 0x8	If 1, the gate is lowered by three pixels, to accommodate attaching more cleanly with normal and mossy Cobblestone Walls
@@ -1081,53 +1084,53 @@ namespace Maploader.Renderer.Texture
             {
                 case 0:
                 case 2:
-                    return GetTexture(texture, 0).Translate(new Rect(0, 6, 16, 4));
+                    return this.GetTexture(texture, 0).Translate(new Rect(0, 6, 16, 4));
                 case 1:
                 case 3:
-                    return GetTexture(texture, 0).Translate(new Rect(0, 6, 16, 4)).Rotate(RotateFlip.Rotate90FlipNone);
+                    return this.GetTexture(texture, 0).Translate(new Rect(0, 6, 16, 4)).Rotate(RotateFlip.Rotate90FlipNone);
 
                 case 4:
-                    return GetTexture(texture, 0)
+                    return this.GetTexture(texture, 0)
                                .Translate(
                                    new Rect(0, 6, 10, 4),
                                    new Rect(6, 0, 10, 4))
                                .Rotate(RotateFlip.Rotate90FlipNone)
 
-                           + GetTexture(texture, 0)
+                           + this.GetTexture(texture, 0)
                                .Translate(
                                    new Rect(0, 6, 10, 4),
                                    new Rect(6, 12, 10, 4))
                                .Rotate(RotateFlip.Rotate90FlipNone);
                 case 6:
-                    return GetTexture(texture, 0)
+                    return this.GetTexture(texture, 0)
                                .Translate(
                                    new Rect(0, 6, 10, 4),
                                    new Rect(6, 0, 10, 4))
                                .Rotate(RotateFlip.Rotate270FlipNone)
 
-                           + GetTexture(texture, 0)
+                           + this.GetTexture(texture, 0)
                                .Translate(
                                    new Rect(0, 6, 10, 4),
                                    new Rect(6, 12, 10, 4))
                                .Rotate(RotateFlip.Rotate270FlipNone);
                 case 5:
-                    return GetTexture(texture, 0)
+                    return this.GetTexture(texture, 0)
                                .Translate(
                                 new Rect(0, 6, 10, 4),
                                 new Rect(6, 0, 10, 4))
                                .Rotate(RotateFlip.Rotate180FlipNone)
 
-                            + GetTexture(texture, 0)
+                            + this.GetTexture(texture, 0)
                                 .Translate(
                                 new Rect(0, 6, 10, 4),
                                 new Rect(6, 12, 10, 4))
                                 .Rotate(RotateFlip.Rotate180FlipNone);
 
                 case 7:
-                    return GetTexture(texture, 0).Translate(
+                    return this.GetTexture(texture, 0).Translate(
                                new Rect(0, 6, 10, 4),
                                new Rect(6, 0, 10, 4))
-                           + GetTexture(texture, 0).Translate(
+                           + this.GetTexture(texture, 0).Translate(
                                new Rect(0, 6, 10, 4),
                                new Rect(6, 12, 10, 4));
 
@@ -1138,7 +1141,7 @@ namespace Maploader.Renderer.Texture
 
         private TextureStack RenderTripwireHook(Dictionary<string, Object> data, string texture)
         {
-            var t = GetTexture(texture);
+            var t = this.GetTexture(texture);
             int dir = 2;
             try
             {
@@ -1171,7 +1174,7 @@ namespace Maploader.Renderer.Texture
             return t;
         }
 
-        private TextureStack RenderPiston (Dictionary<string, Object> data, string prefix)
+        private TextureStack RenderPiston(Dictionary<string, Object> data, string prefix)
         {
             try
             {
@@ -1179,16 +1182,16 @@ namespace Maploader.Renderer.Texture
                 switch (dir)
                 {
                     case 0:
-                        return GetTexture("piston_bottom", data);
+                        return this.GetTexture("piston_bottom", data);
                     case 1:
-                        return GetTexture("piston_top_" + prefix, data);
+                        return this.GetTexture("piston_top_" + prefix, data);
                 }
             }
-            catch {}
+            catch { }
 
-            return GetTexture("piston_side", data);
+            return this.GetTexture("piston_side", data);
         }
-        private TextureStack RenderLever (Dictionary<string, Object> data)
+        private TextureStack RenderLever(Dictionary<string, Object> data)
         {
             RotateFlip rot = RotateFlip.RotateNoneFlipNone;
             TextureTranslation trans = null;
@@ -1203,12 +1206,12 @@ namespace Maploader.Renderer.Texture
                         rot = RotateFlip.Rotate180FlipNone;
                         try
                         {
-                            if((int)data["open_bit"] == 1)
+                            if ((int)data["open_bit"] == 1)
                             {
                                 rot = RotateFlip.RotateNoneFlipNone;
                             }
                         }
-                        catch {}
+                        catch { }
                         break;
                     case "north":
                         rot = RotateFlip.RotateNoneFlipNone;
@@ -1225,21 +1228,21 @@ namespace Maploader.Renderer.Texture
                         rot = RotateFlip.Rotate90FlipNone;
                         try
                         {
-                            if((int)data["open_bit"] == 1)
+                            if ((int)data["open_bit"] == 1)
                             {
                                 rot = RotateFlip.Rotate270FlipNone;
                             }
                         }
-                        catch {}
+                        catch { }
                         break;
                     case "west":
                         rot = RotateFlip.Rotate270FlipNone;
                         break;
                 }
             }
-            catch {}
+            catch { }
 
-            return GetTexture("lever", data, trans, rot);
+            return this.GetTexture("lever", data, trans, rot);
         }
 
         public Dictionary<TextureInfo, TImage> Cache { get; } = new Dictionary<TextureInfo, TImage>();
@@ -1259,22 +1262,22 @@ namespace Maploader.Renderer.Texture
             localPath = localPath.Replace("textures/", "");
             localPath = localPath.Replace('/', Path.DirectorySeparatorChar);
 
-            if (Cache.ContainsKey(info))
+            if (this.Cache.ContainsKey(info))
             {
-                return Cache[info];
+                return this.Cache[info];
             }
 
             try
             {
-                string filepath = Path.Combine(path, localPath);
+                string filepath = Path.Combine(this.path, localPath);
                 TImage b = null;
                 if (File.Exists(filepath + ".png"))
                 {
-                    b = graphics.LoadImage(filepath + ".png");
+                    b = this.graphics.LoadImage(filepath + ".png");
                 }
                 else if (File.Exists(filepath + ".tga"))
                 {
-                    b = graphics.LoadImage(filepath + ".tga");
+                    b = this.graphics.LoadImage(filepath + ".tga");
                 }
 
                 if (b == null)
@@ -1284,19 +1287,19 @@ namespace Maploader.Renderer.Texture
 
                 if (info.Translation != null)
                 {
-                    var bnew = graphics.CreateEmptyImage(16, 16);
-                    graphics.DrawImage(bnew, b, info.Translation.Dest, info.Translation.Source);
+                    var bnew = this.graphics.CreateEmptyImage(16, 16);
+                    this.graphics.DrawImage(bnew, b, info.Translation.Dest, info.Translation.Source);
                     b = bnew;
                 }
 
                 if (info.Rotation != RotateFlip.RotateNoneFlipNone)
                 {
-                    graphics.RotateFlip(b, info.Rotation);
+                    this.graphics.RotateFlip(b, info.Rotation);
                 }
 
-                if (!Cache.ContainsKey(info))
+                if (!this.Cache.ContainsKey(info))
                 {
-                    Cache.Add(info, b);
+                    this.Cache.Add(info, b);
                 }
 
                 return b;
@@ -1340,27 +1343,27 @@ namespace Maploader.Renderer.Texture
         {
             var dictData = new Dictionary<string, Object>();
             dictData.Add("val", data);
-            return GetTexture(name, dictData, translation, rot);
+            return this.GetTexture(name, dictData, translation, rot);
         }
         private TextureStack GetTexture(string name, Dictionary<string, Object> data, TextureTranslation translation = null, RotateFlip rot = RotateFlip.RotateNoneFlipNone)
         {
             string texturePath = null;
-            if (texturesJson.ContainsKey(name))
+            if (this.texturesJson.ContainsKey(name))
             {
-                var texture = texturesJson[name];
+                var texture = this.texturesJson[name];
                 texturePath = texture.Subtextures.First().Path;
-                foreach(var blockProperties in data)
+                foreach (var blockProperties in data)
                 {
-                    if(blockProperties.Key == "val")
+                    if (blockProperties.Key == "val")
                     {
                         int intValue = (int)blockProperties.Value;
                         try
                         {
                             texturePath = texture.Subtextures[intValue].Path;
                         }
-                        catch{}
+                        catch { }
                     }
-                    if(blockProperties.Key == "color")
+                    if (blockProperties.Key == "color")
                     {
 
                         int colorIndex = ColorIndexes.First().Value;
@@ -1375,7 +1378,7 @@ namespace Maploader.Renderer.Texture
                             Console.WriteLine("Cannot find color for " + name);
                         }
                     }
-                    if(blockProperties.Key == "facing_direction")
+                    if (blockProperties.Key == "facing_direction")
                     {
                         int direction = (int)data["facing_direction"];
                         switch (direction)
@@ -1402,16 +1405,16 @@ namespace Maploader.Renderer.Texture
             return new TextureStack(texturePath, translation, rot);
         }
 
-        private int LegacyGetOldDataValue (Dictionary<string, Object> data)
+        private int LegacyGetOldDataValue(Dictionary<string, Object> data)
         {
             int result = 0;
-            if(data.ContainsKey("val"))
+            if (data.ContainsKey("val"))
             {
                 try
                 {
                     result = (int)data["val"];
                 }
-                catch {}
+                catch { }
             }
             return result;
         }

@@ -22,7 +22,7 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                     foreach (var chunkSubKeys in groupedChunkSubKeys)
                     {
                         var data = world.GetChunkData(chunkSubKeys);
-                        
+
                         foreach (var subKey in data.SubChunks)
                         {
                             if (renderedSubChunks.Count > 0 && renderedSubChunks.TryGetValue(new LevelDbWorldKey2(subKey.Key), out KeyAndCrc crc32))

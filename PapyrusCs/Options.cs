@@ -7,66 +7,83 @@ namespace PapyrusCs
     [Verb("test")]
     public class TestOptions
     {
-        [Option('w', "world", Required = true, HelpText = "Sets the path the Minecraft Bedrock Edition Map, looks in default location if not specified")]
+        [Option('w', "world", Required = true,
+            HelpText = "Sets the path the Minecraft Bedrock Edition Map, looks in default location if not specified")]
         public string MinecraftWorld { get; set; }
 
-        [Option("db", Required = false, HelpText = "Tests Db Read")]
+        [Option("db", Required = false,
+            HelpText = "Tests Db Read")]
         public bool TestDbRead { get; set; }
 
-        [Option("decode", Required = false, HelpText = "Tests Chunk Decode")]
+        [Option("decode", Required = false,
+            HelpText = "Tests Chunk Decode")]
         public bool Decode { get; set; }
 
-        [Option("smallflow", Required = false, HelpText = "Tests Smallflow Decode")]
+        [Option("smallflow", Required = false,
+            HelpText = "Tests Smallflow Decode")]
         public bool Smallflow { get; set; }
 
-        [Option("threads", Required = false, HelpText = "Set maximum of used threads", Default = 1)]
+        [Option("threads", Required = false,
+            HelpText = "Set maximum of used threads", Default = 1)]
         public int Threads { get; set; }
     }
 
     [Verb("repl")]
     public class ReplOptions
     {
-        [Option('w', "world", Required = true, HelpText = "Sets the path the Minecraft Bedrock Edition Map")]
+        [Option('w', "world", Required = true,
+            HelpText = "Sets the path the Minecraft Bedrock Edition Map")]
         public string MinecraftWorld { get; set; }
     }
 
     [Verb("map")]
     public class Options
     {
-        [Option('w', "world", Required = false, HelpText = "Sets the path the Minecraft Bedrock Edition Map")]
+        [Option('w', "world", Required = false,
+            HelpText = "Sets the path the Minecraft Bedrock Edition Map")]
         public string MinecraftWorld { get; set; }
 
-        [Option('o', "output", Required = false, HelpText = "Sets the output path for the generated map tiles")]
+        [Option('o', "output", Required = false,
+            HelpText = "Sets the output path for the generated map tiles")]
         public string OutputPath { get; set; }
 
-        [Option("htmlfile", Required = false, HelpText = "Sets name of html map file", Default = "map.html")]
+        [Option("htmlfile", Required = false,
+            HelpText = "Sets name of html map file", Default = "map.html")]
         public string MapHtml { get; set; }
 
-        [Option('s', "strategy", Required = false, HelpText = "Sets the render strategy. Valid is only Dataflow", Default = Strategy.Dataflow)]
+        [Option('s', "strategy", Required = false,
+            HelpText = "Sets the render strategy. Valid is only Dataflow", Default = Strategy.Dataflow)]
         public Strategy Strategy { get; set; }
 
-        [Option("coords", Required = false, HelpText = "Render text coordinates in each chunk", Default = false)]
+        [Option("coords", Required = false,
+            HelpText = "Render text coordinates in each chunk", Default = false)]
         public bool RenderCoords { get; set; }
 
         [Option("limitx", Required = false, HelpText = "Limits the chunk rendering in the x dimension (inclusive). Provide two values with comma separated, eg: -10,10")]
         public string LimitX { get; set; }
 
-        [Option("limitz", Required = false, HelpText = "Limits the chunk rendering in the z dimension (inclusive). Provide two values with comma separated, eg: -10,10")]
+        [Option("limitz", Required = false,
+            HelpText = "Limits the chunk rendering in the z dimension (inclusive). Provide two values with comma separated, eg: -10,10")]
         public string LimitZ { get; set; }
 
-        [Option('y', "limity", Required = false, HelpText = "Limits the chunk rendering in the y dimension (inclusive). For y provide just one positive value, eg: 10. -1 means: all", Default = -1)]
+        [Option('y', "limity", Required = false,
+            HelpText = "Limits the chunk rendering in the y dimension (inclusive). For y provide just one positive value, eg: 10. -1 means: all", Default = -1)]
         public int LimitY { get; set; }
 
-        [Option("threads", Required = false, HelpText = "Set maximum of used threads", Default = 16)]
+        [Option("threads", Required = false,
+            HelpText = "Set maximum of used threads", Default = 16)]
         public int MaxNumberOfThreads { get; set; }
 
-        [Option("maxqueue", Required = false, HelpText = "Set maximum queue length for the pipeline stages", Default = 128)]
+        [Option("maxqueue", Required = false,
+            HelpText = "Set maximum queue length for the pipeline stages", Default = 128)]
         public int MaxNumberOfQueueEntries { get; set; }
 
-        [Option('r', "rendermode", Required = false, HelpText = "RenderMode: Basic - Render without brightness adjustment. Heightmap - Render with brightness adjustment based on brillouin function and height of block", Default = RenderMode.Heightmap)]
+        [Option('r', "rendermode", Required = false,
+            HelpText = "RenderMode: Basic - Render without brightness adjustment. Heightmap - Render with brightness adjustment based on brillouin function and height of block", Default = RenderMode.Heightmap)]
         public RenderMode RenderMode { get; set; }
 
-        [Option("brillouin_j", Required = false, HelpText = "Sets factor j for heightmap brightness formula brillouin: brightness = 1+brillouin((height-offset) / divider): See https://de.wikipedia.org/wiki/Brillouin-Funktion for a diagram of the function.", Default = 10000f)]
+        [Option("brillouin_j", Required = false,
+            HelpText = "Sets factor j for heightmap brightness formula brillouin: brightness = 1+brillouin((height-offset) / divider): See https://de.wikipedia.org/wiki/Brillouin-Funktion for a diagram of the function.", Default = 10000f)]
         public float BrillouinJ { get; set; }
 
         [Option("brillouin_divider", Required = false,
@@ -75,45 +92,53 @@ namespace PapyrusCs
         public float BrillouinDivider { get; set; }
 
         [Option("brillouin_offset", Required = false,
-            HelpText =
-                "Sets the offset for heightmap brightness formula brillouin: brightness = 1+brillouin((height-offset) / divider). See https://de.wikipedia.org/wiki/Brillouin-Funktion for a diagram of the function.",
+            HelpText = "Sets the offset for heightmap brightness formula brillouin: brightness = 1+brillouin((height-offset) / divider). See https://de.wikipedia.org/wiki/Brillouin-Funktion for a diagram of the function.",
             Default = 64)]
         public int BrillouinOffset { get; set; }
 
-        [Option('f', Required = false, Default = "png", HelpText = "Sets the output file format")]
+        [Option('f', Required = false, Default = "png",
+            HelpText = "Sets the output file format")]
         public string FileFormat { get; set; }
 
-        [Option('q', Required = false, Default = -1, HelpText = "Sets quality for jpg or web format (0-100, -1 for lossless webp)")]
+        [Option('q', Required = false, Default = -1,
+            HelpText = "Sets quality for jpg or web format (0-100, -1 for lossless webp)")]
         public int Quality { get; set; }
 
-
-        [Option("forceoverwrite", Required = false, Default = false, HelpText = "Forces PapyrusCs to render every chunk again")]
+        [Option("forceoverwrite", Required = false, Default = false,
+            HelpText = "Forces PapyrusCs to render every chunk again")]
         public bool ForceOverwrite { get; set; }
 
-        [Option('d', "dim", Required = false, Default = 0, HelpText = "Selects the dimension. 0: Overworld, 1: Nether, 2: End")]
+        [Option('d', "dim", Required = false, Default = 0,
+            HelpText = "Selects the dimension. 0: Overworld, 1: Nether, 2: End")]
         public int Dimension { get; set; }
 
-        [Option('p', "profile", Required = false, Default = "", HelpText = "Optional profile: 'underground', 'aquatic', 'ore', 'stronghold'")]
+        [Option('p', "profile", Required = false, Default = "",
+            HelpText = "Optional profile: 'underground', 'aquatic', 'ore', 'stronghold'")]
         public string Profile { get; set; }
 
-        [Option("trimceiling", Required = false, Default = false, HelpText = "Removes the ceiling starting from y-max. Automatically activated for nether")]
+        [Option("trimceiling", Required = false, Default = false,
+            HelpText = "Removes the ceiling starting from y-max. Automatically activated for nether")]
         public bool TrimCeiling { get; set; }
 
-        [Option("notrimceiling", Required = false, Default = false, HelpText = "Disables auto ceiling removal for Nether")]
+        [Option("notrimceiling", Required = false, Default = false,
+            HelpText = "Disables auto ceiling removal for Nether")]
         public bool NoAutoTrimCeiling { get; set; }
 
-        [Option("deleteexistingupdatefolder", Required = false, Default = false, HelpText = "Delete an existing update/dimX folder right before creating a possible new update")]
+        [Option("deleteexistingupdatefolder", Required = false, Default = false,
+            HelpText = "Delete an existing update/dimX folder right before creating a possible new update")]
         public bool DeleteExistingUpdateFolder { get; set; }
 
-        [Option("chunksperdimension", Required = false, Default = 2, HelpText = "Sets the chunks per X and Y dimension for the generated tiles. 1 => 1 chunk per tile, 2 => 4 chunks per tile and so on")]
+        [Option("chunksperdimension", Required = false, Default = 2,
+            HelpText = "Sets the chunks per X and Y dimension for the generated tiles. 1 => 1 chunk per tile, 2 => 4 chunks per tile and so on")]
         public int ChunksPerDimension { get; set; }
 
-        [Option("playericons", Required = false, Default = false, HelpText = "Renders player markers on the map. Player names must be manually entered. After running, edit '/map/playersData.js' text file to modify player names and colors.")]
+        [Option("playericons", Required = false, Default = false,
+            HelpText = "Renders player markers on the map. Player names must be manually entered. After running, edit '/map/playersData.js' text file to modify player names and colors.")]
         public bool ShowPlayerIcons { get; set; }
 
-        [Option("render_map", Required = false, Default = true, HelpText = "Renders the map. This is the main feature of this program. Only disable this in special circumstances, such as if you want to quickly update player markers without updating the map.")]
+        [Option("render_map", Required = false, Default = true,
+            HelpText = "Renders the map. This is the main feature of this program. Only disable this in special circumstances, such as if you want to quickly update player markers without updating the map.")]
         public bool RenderMap { get; set; }
-
 
         // Derivative options
         public bool Loaded { get; set; }

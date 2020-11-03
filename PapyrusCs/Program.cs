@@ -195,25 +195,24 @@ namespace PapyrusCs
                     Directory.CreateDirectory(options.OutputPath);
                 }
 
-                // db stuff
                 var textures = ReadTerrainTextureJson();
                 var zoom = CalculateZoom(xmax, xmin, zmax, zmin, chunksPerDimension, out var extendedDia);
-
                 var strat = InstanciateStrategy(options);
                 ConfigureStrategy(strat, options, allSubChunks, extendedDia, zoom, world, textures, tileSize, chunkSize, zmin, zmax, xmin, xmax);
 
+                // Creates db and reads already-rendered chunks.
                 strat.Init();
 
-                // other stuff
+                // Render
 
                 strat.RenderInitialLevel();
 
                 var missingTextures = strat.MissingTextures;
                 if (missingTextures != null)
                 {
-                    File.WriteAllLines("missingtextures.txt", missingTextures.Distinct());
+                    var missingTexturesFile = Path.Combine(options.OutputPath, "MissingTextures.txt");
+                    File.WriteAllLines(missingTexturesFile, missingTextures.Distinct().OrderBy(t => t));
                 }
-
 
                 Console.WriteLine("Time is {0}", _time.Elapsed);
 

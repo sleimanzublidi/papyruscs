@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using JetBrains.Annotations;
@@ -16,6 +17,7 @@ namespace Maploader.Renderer
         private readonly TextureFinder<TImage> textureFinder;
         private readonly IGraphicsApi<TImage> graphics;
         private readonly RenderSettings renderSettings;
+        private readonly Brillouin brillouin;
 
         public ChunkRenderer([NotNull] TextureFinder<TImage> textureFinder, IGraphicsApi<TImage> graphics, RenderSettings settings = null)
         {
@@ -23,36 +25,39 @@ namespace Maploader.Renderer
             this.graphics = graphics;
             this.renderSettings = settings ?? new RenderSettings();
 
-            this.b = new Brillouin(this.renderSettings.BrillouinJ, this.renderSettings.BrillouinDivider);
+            this.brillouin = new Brillouin(this.renderSettings.BrillouinJ, this.renderSettings.BrillouinDivider);
         }
 
         public List<string> MissingTextures { get; } = new List<string>();
 
-        private Brillouin b;
-
-
-
-        public void RenderChunk(TImage dest, Chunk c, int xOffset, int zOffset)
+        public void RenderChunk(TImage dest, Chunk chunk, int xOffset, int zOffset)
         {
-            var xzColumns = c.Blocks.GroupBy(x => x.Value.XZ);
+            var xzColumns = chunk.Blocks.GroupBy(x => x.Value.XZ);
             var blocksOrderedByXZ = xzColumns.OrderBy(x => x.Key.GetLeByte(0)).ThenBy(x => x.Key.GetLeByte(1));
             var brightnessOffset = Math.Min(this.renderSettings.BrillouinOffset, this.renderSettings.YMax);
             if (brightnessOffset < 0)
                 brightnessOffset = this.renderSettings.BrillouinOffset;
 
-
             foreach (var blocks in blocksOrderedByXZ)
             {
                 var blocksToRender = new Stack<BlockCoord>();
 
-                List<KeyValuePair<uint, BlockCoord>> blocksFromSkyToBedrock = blocks.Where(x => x.Value.Block.Id != "minecraft:air").OrderByDescending(x => x.Value.Y).ToList();
+                List<KeyValuePair<uint, BlockCoord>> blocksFromSkyToBedrock = blocks
+                    .Where(x => x.Value.Block.Id != "minecraft:air")
+                    .OrderByDescending(x => x.Value.Y)
+                    .ToList();
+
                 if (this.renderSettings.YMax > 0)
-                    blocksFromSkyToBedrock = blocksFromSkyToBedrock.Where(x => x.Value.Y <= this.renderSettings.YMax).ToList();
+                {
+                    blocksFromSkyToBedrock = blocksFromSkyToBedrock
+                        .Where(x => x.Value.Y <= this.renderSettings.YMax)
+                        .ToList();
+                }
 
                 if (this.renderSettings.TrimCeiling)
                 {
                     int start = -1;
-                    for (int i = 1; i < blocksFromSkyToBedrock.Count(); i++)
+                    for (int i = 1; i < blocksFromSkyToBedrock.Count; i++)
                     {
                         if (Math.Abs(blocksFromSkyToBedrock[i].Value.Y - blocksFromSkyToBedrock[i - 1].Value.Y) > 4)
                         {
@@ -65,7 +70,6 @@ namespace Maploader.Renderer
                     {
                         blocksFromSkyToBedrock.RemoveRange(0, start);
                     }
-
                 }
 
                 switch (this.renderSettings.Profile)
@@ -126,6 +130,7 @@ namespace Maploader.Renderer
                             }
                         }
                         break;
+
                     case "aquatic":
                         {
                             bool isWater = false;
@@ -133,7 +138,6 @@ namespace Maploader.Renderer
                             foreach (var blockColumn in blocksFromSkyToBedrock)
                             {
                                 var block = blockColumn.Value;
-
                                 if (block.Block.Id.Contains("water"))
                                 {
                                     isWater = true;
@@ -147,7 +151,6 @@ namespace Maploader.Renderer
                                     {
                                         break;
                                     }
-
                                     continue;
                                 }
 
@@ -159,11 +162,13 @@ namespace Maploader.Renderer
                             }
                         }
                         break;
+
                     case "ore":
                         {
                             SearchForOres(blocksToRender, blocksFromSkyToBedrock);
                         }
                         break;
+
                     case "stronghold":
                         {
                             var lastYValue = 300;
@@ -233,6 +238,7 @@ namespace Maploader.Renderer
                             }
                         }
                         break;
+
                     default:
                         {
                             foreach (var blockColumn in blocksFromSkyToBedrock) // Look for transparent blocks in single y column
@@ -255,8 +261,8 @@ namespace Maploader.Renderer
                     {
                         continue;
                     }
-                    var textures =
-                        this.textureFinder.FindTexturePath(block.Block.Id, block.Block.Data, block.X, block.Z, block.Y);
+
+                    var textures = this.textureFinder.FindTexturePath(block.Block.Id, block.Block.Data, block.X, block.Z, block.Y);
                     if (textures == null)
                     {
                         Console.WriteLine($"\nMissing Texture(2): {block.ToString().PadRight(30)}");
@@ -274,7 +280,7 @@ namespace Maploader.Renderer
 
                             if (this.renderSettings.RenderMode == RenderMode.Heightmap)
                             {
-                                this.graphics.DrawImageWithBrightness(dest, bitmapTile, x, z, this.b.GetBrightness(block.Y - brightnessOffset));
+                                this.graphics.DrawImageWithBrightness(dest, bitmapTile, x, z, this.brillouin.GetBrightness(block.Y - brightnessOffset));
                             }
                             else
                             {
@@ -285,6 +291,7 @@ namespace Maploader.Renderer
                         {
                             Console.WriteLine($"\nMissing Texture(1): {block.ToString().PadRight(30)} -- {texture.Filename}");
                             this.MissingTextures.Add($"ID: {block.Block.Id}, {texture.Filename}");
+                            continue;
                         }
                     }
                 }
@@ -292,7 +299,7 @@ namespace Maploader.Renderer
 
             if (this.renderSettings.RenderCoordinateStrings)
             {
-                this.graphics.DrawString(dest, $"{c.X * 1}, {c.Z * 1}", new Font(FontFamily.GenericSansSerif, 10), Brushes.Black, xOffset, zOffset);
+                this.graphics.DrawString(dest, $"{chunk.X * 1}, {chunk.Z * 1}", new Font(FontFamily.GenericSansSerif, 10), Brushes.Black, xOffset, zOffset);
             }
         }
 
@@ -300,6 +307,7 @@ namespace Maploader.Renderer
         {
             var orePriority = new[]
             {
+                // Overworld
                 "minecraft:diamond_ore",
                 "minecraft:emerald_ore",
                 "minecraft:redstone_ore",
@@ -307,6 +315,10 @@ namespace Maploader.Renderer
                 "minecraft:iron_ore",
                 "minecraft:lapis_ore",
                 "minecraft:coal_ore",
+                // Nether
+                "minecraft:ancient_debris",
+                "minecraft:nether_gold_ore",
+                "minecraft:quartz_ore",
             };
 
             foreach (var target in orePriority)
@@ -316,7 +328,6 @@ namespace Maploader.Renderer
                 foreach (var blockColumn in blocksFromSkyToBedrock)
                 {
                     var block = blockColumn.Value;
-
                     if (block.Block.Id == target)
                     {
                         blocksToRender.Push(block);
@@ -346,13 +357,14 @@ namespace Maploader.Renderer
             }
         }
 
-        private static readonly List<string> SpecialBlockList = new List<string>
-        {
-            "minecraft:light_block"
-        };
         private static bool SkipSpecialBlockRender(BlockData block)
         {
-            return SpecialBlockList.Contains(block.Id);
+            switch (block.Id)
+            {
+                case "minecraft:light_block":
+                    return true;
+            }
+            return false;
         }
     }
 }

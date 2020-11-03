@@ -11,11 +11,10 @@ using Maploader.World;
 
 namespace PapyrusAlgorithms.Strategies.Dataflow
 {
-    class CreateChunkAndRenderBlock<TImage> : ITplBlock where TImage : class
+    internal class CreateChunkAndRenderBlock<TImage> : ITplBlock where TImage : class
     {
         private int processedCount;
         public TransformBlock<IEnumerable<ChunkData>, ImageInfo<TImage>> Block { get; }
-        Random r = new Random();
 
         public CreateChunkAndRenderBlock(
             World world,
@@ -27,11 +26,11 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
             ExecutionDataflowBlockOptions options)
         {
             int tileSize = chunksPerDimension * chunkSize;
-            graphics.SetPoolDimensions(tileSize,tileSize);
+            graphics.SetPoolDimensions(tileSize, tileSize);
             int chunkRenderedCounter = 0;
             var renderCombiPool = new GenericPool<RendererCombi<TImage>>(() => new RendererCombi<TImage>(textureDictionary, texturePath, renderSettings, graphics));
 
-            Block = new TransformBlock<IEnumerable<ChunkData>, ImageInfo<TImage>>(chunkDatas =>
+            this.Block = new TransformBlock<IEnumerable<ChunkData>, ImageInfo<TImage>>(chunkDatas =>
             {
                 RendererCombi<TImage> chunkRenderer = null;
                 try
@@ -59,16 +58,14 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                         if (x < 0) x += chunksPerDimension;
                         if (z < 0) z += chunksPerDimension;
                         chunkRenderer.ChunkRenderer.RenderChunk(b, chunk, x * chunkSize, z * chunkSize);
-
                         world.ChunkPool?.Return(chunk);
                         count++;
                     }
 
-
                     var fx = CoordHelpers.GetGroupedCoordinate(firstX, chunksPerDimension);
                     var fz = CoordHelpers.GetGroupedCoordinate(firstZ, chunksPerDimension);
 
-                    Interlocked.Increment(ref processedCount);
+                    Interlocked.Increment(ref this.processedCount);
                     Interlocked.Add(ref chunkRenderedCounter, count);
 
                     if (chunkRenderedCounter >= 128)
@@ -82,8 +79,6 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
                     {
                         throw new ArgumentOutOfRangeException("Test Error in CreateChunkAndRender");
                     }*/
-
-                    
 
                     return new ImageInfo<TImage>()
                     {
@@ -107,9 +102,9 @@ namespace PapyrusAlgorithms.Strategies.Dataflow
 
         public event EventHandler<ChunksRenderedEventArgs> ChunksRendered;
 
-        public int InputCount => Block.InputCount;
-        public int OutputCount => Block.OutputCount;
-        public int ProcessedCount => processedCount;
+        public int InputCount => this.Block.InputCount;
+        public int OutputCount => this.Block.OutputCount;
+        public int ProcessedCount => this.processedCount;
     }
 }
 

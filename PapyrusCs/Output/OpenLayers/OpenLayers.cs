@@ -125,6 +125,7 @@ var playersData = // # INJECT DATA HERE;";
                     { "dim0_ore", "Ores" },
                     { "dim0_stronghold", "Strongholds" },
                     { "dim1", "Nether" },
+                    { "dim1_ore", "Nether Ores" },
                     { "dim2", "The End" },
                 };
 
