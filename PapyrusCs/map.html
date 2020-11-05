@@ -69,29 +69,29 @@
             min-width: 148px;
         }
 
-            .ol-popup:after, .ol-popup:before {
-                top: 100%;
-                border: solid transparent;
-                content: " ";
-                height: 0;
-                width: 0;
-                position: absolute;
-                pointer-events: none;
-            }
+        .ol-popup:after, .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
 
-            .ol-popup:after {
-                border-top-color: white;
-                border-width: 10px;
-                left: 48px;
-                margin-left: -10px;
-            }
+        .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
 
-            .ol-popup:before {
-                border-top-color: #cccccc;
-                border-width: 11px;
-                left: 48px;
-                margin-left: -11px;
-            }
+        .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
 
         .ol-popup-closer {
             text-decoration: none;
@@ -100,9 +100,9 @@
             right: 8px;
         }
 
-            .ol-popup-closer:after {
-                content: "✖";
-            }
+        .ol-popup-closer:after {
+            content: "✖";
+        }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
@@ -147,25 +147,13 @@
         function preventSubmit() { return false; }
 
         var layers = {
-            dim0: {
-                name: "Overworld",
-                attribution: '',
-                minNativeZoom: 10,
-                maxNativeZoom: 20,
-                noWrap: true,
-                tileSize: 256,
-                folder: "dim0",
-                fileExtension: "png"
-            }
+            dim0: { name: "Overworld", attribution: "", minNativeZoom: 10, maxNativeZoom: 20, noWrap: true, tileSize: 256, folder: "dim0", fileExtension: "png" }
         };
+
         var config = { "factor": 65536.0, "globalMinZoom": 10, "globalMaxZoom": 20, "tileSize": 256, "blocksPerTile": 16 };
 
-        // layers = {"dim0":{"name":"Overworld","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0","fileExtension":"png"},"dim0_underground":{"name":"Underground","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_underground","fileExtension":"png"},"dim0_ore":{"name":"Ores","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_ore","fileExtension":"png"},"dim0_stronghold":{"name":"Strongholds","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_stronghold","fileExtension":"png"},"dim0_aquatic":{"name":"Aquatic","attribution":"","minNativeZoom":11,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim0_aquatic","fileExtension":"png"},"dim1":{"name":"Nether","attribution":"","minNativeZoom":13,"maxNativeZoom":20,"noWrap":true,"tileSize":256,"folder":"dim1","fileExtension":"png"}};
-
-        // The values above will be injected and replaced.
         // # INJECT DATA HERE
 
-        // ======
 
         // For the extent sizes specified below, OpenLayers tries to fit
         // the whole extents given in a space [0, 0] -> [2^8, 2^8] visually
@@ -285,6 +273,9 @@
         let currentSelectedLayerKey = Object.keys(layers).sort()[0];
         const initialLayer = layers[currentSelectedLayerKey];
 
+        var poiVisibility = true;
+        var playersVisibility = true;
+
         if (currentSelectedLayerKey.substr(0, 4) == "dim1") {
             centerX = Math.floor(centerX / 16);
             centerZ = Math.floor(centerZ / 16);
@@ -307,17 +298,17 @@
                 document.getElementById("map").style.background = "#202020";
             }
 
+            const runtimeLayers = map.getLayers();
+            let layer = layers[layerKey];
+
+            runtimeLayers.forEach(function(runtimeLayer) {
+                var visible = runtimeLayer.metaLayerKey == layerKey ||
+                    (runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_players" && playersVisibility) ||
+                    (runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_poi" && poiVisibility)
+                runtimeLayer.setVisible(visible);
+            });
+
             if (currentSelectedLayerKey != layerKey) {
-                const runtimeLayers = map.getLayers();
-                let layer = layers[layerKey];
-
-                runtimeLayers.forEach(function(runtimeLayer) {
-                    var visible = runtimeLayer.metaLayerKey == layerKey ||
-                        runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_players" ||
-                        runtimeLayer.metaLayerKey == layerKey.substr(0, 4) + "_poi"
-                    runtimeLayer.setVisible(visible);
-                });
-
                 const oldFocusGroup = currentSelectedLayerKey.substr(0, 4);
                 const newFocusGroup = layerKey.substr(0, 4);
 
@@ -340,6 +331,7 @@
                 rememberedZoom[oldFocusGroup] = view.getZoom();
                 view.setMinZoom(layer.minNativeZoom - config.globalMinZoom);
                 view.setMaxZoom(layer.maxNativeZoom - config.globalMinZoom);
+
                 if (rememberedZoom[newFocusGroup] === undefined) {
                     // rezoom the map to minimum zoom
                     view.setZoom(layer.minNativeZoom - config.globalMinZoom);
@@ -413,8 +405,7 @@
                         radioContainer.className = "custom-control custom-radio";
 
                         if (layerKey.substr(0, 4) != cl) {
-                            const hr = document.createElement("hr");
-                            radioContainer.appendChild(hr);
+                            radioContainer.appendChild(document.createElement("hr"));
                         }
                         cl = layerKey.substr(0, 4);
 
@@ -443,17 +434,47 @@
                         form.appendChild(radioContainer);
                     });
 
-                Control.call(this, {
-                    element: element,
-                    target: options.target
-                });
+
+                const checkContainer = document.createElement("div");
+                checkContainer.className = "custom-control custom-checkbox";
+                checkContainer.appendChild(document.createElement("hr"));
+
+                const poiCheckBox = document.createElement("input");
+                poiCheckBox.className = "custom-control-input";
+                poiCheckBox.type = "checkbox";
+                poiCheckBox.checked = poiVisibility;
+                poiCheckBox.id = "poiCheckBox";
+                poiCheckBox.name = "poi";
+                poiCheckBox.value = "poi";
+                checkContainer.appendChild(poiCheckBox);
+
+                const setPOIVisibility = function(e) {
+                    poiVisibility = !poiVisibility;
+                    onSelectedLayerChanged(currentSelectedLayerKey);
+                };
+
+                poiCheckBox.addEventListener(
+                    "click",
+                    setPOIVisibility.bind(this),
+                    false
+                );
+
+                const poiLabel = document.createElement("label");
+                poiLabel.htmlFor = "poiCheckBox";
+                poiLabel.className = "custom-control-label";
+                poiLabel.innerText = "PoI.";
+                checkContainer.appendChild(poiLabel);
+
+                form.appendChild(checkContainer);
+
+                Control.call(this, { element: element,  target: options.target });
             }
 
             if (Control) PapyrusControls.__proto__ = Control;
             PapyrusControls.prototype = Object.create(Control && Control.prototype);
             PapyrusControls.prototype.constructor = PapyrusControls;
-
             return PapyrusControls;
+
         })(ol.control.Control);
 
         // * Overlay Popup *

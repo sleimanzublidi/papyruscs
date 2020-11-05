@@ -11,20 +11,6 @@ namespace PapyrusCs.Output.OpenLayers
 {
     public class OpenLayers
     {
-        private static readonly string[] randomPlayerMapIconColors = {
-            // You can also use hex colors "#FFFFFF" and rgb "rgb(128, 128, 128)"
-            "DeepPink",
-            "DarkRed",
-            "DarkOrange",
-            "Gold",
-            "SaddleBrown",
-            "DarkGreen",
-            "Teal",
-            "DarkBlue",
-            "Purple",
-            "SlateGray"
-        };
-
         public void OutputMap(int tileSize, string outputPath, string mapHtmlFile, Settings[] settings,
             bool isUpdate, bool showPlayerIcons, World world)
         {
@@ -76,7 +62,7 @@ var playersData = // # INJECT DATA HERE;";
                             name,
                             dimensionId,
                             position,
-                            color = randomPlayerMapIconColors[random.Next(0, randomPlayerMapIconColors.Length)],
+                            color = "Black",
                             visible = true
                         }));
                     }
@@ -140,7 +126,7 @@ var playersData = // # INJECT DATA HERE;";
                     getDimWithProfile,
                     setting => new LayerDef
                     {
-                        name = layernames.ContainsKey(getDimWithProfile(setting)) ? layernames[getDimWithProfile(setting)] : $"Dimension{setting.Dimension}_{setting.Profile}",
+                        name = layernames.ContainsKey(getDimWithProfile(setting)) ? layernames[getDimWithProfile(setting)] : $"dim{setting.Dimension}_{setting.Profile}",
                         attribution = "",
                         minNativeZoom = setting.MinZoom,
                         maxNativeZoom = setting.MaxZoom,
@@ -160,9 +146,11 @@ var playersData = // # INJECT DATA HERE;";
                     blocksPerTile = tileSize / 16
                 };
 
+                var layersJson = JsonConvert.SerializeObject(layersdef).Replace("},", "\r\n\t\t");
+
                 mapHtmlContext = mapHtmlContext.Replace(
                     "// # INJECT DATA HERE",
-                    "layers = " + JsonConvert.SerializeObject(layersdef) + "; \r\n\t\t" +
+                    "layers = " + layersJson + ";\r\n\r\n\t\t" +
                     "config = " + JsonConvert.SerializeObject(globalconfig) + ";");
 
                 Directory.CreateDirectory(Path.Combine(outputPath, "map"));
